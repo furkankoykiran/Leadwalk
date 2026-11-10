@@ -31,10 +31,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/image": "^2.1.0",
-    "@tailwindcss/vite": "^4.3.3",
+    "@nuxt/image": "^2.2.1",
+    "@tailwindcss/vite": "^4.3.5",
     "better-sqlite3": "^13.0.3",
-    "nuxt": "^4.5.2",
+    "nuxt": "^4.6.4",
     "tailwindcss": "^4.3.2",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
@@ -42,10 +42,10 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/google.maps": "^3.65.5",
-    "eslint": "^10.8.1",
+    "@types/google.maps": "^3.66.10",
+    "eslint": "^10.14.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.10",
-    "vue-tsc": "^3.3.9"
+    "vue-tsc": "^3.3.14"
   }
 }
