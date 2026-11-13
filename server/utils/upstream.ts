@@ -1,3 +1,6 @@
+import type { ServerLocale } from './locale'
+import { appError } from './locale'
+
 /** HTTP statuses worth retrying: rate limiting and transient server trouble. */
 const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504]
 
@@ -22,33 +25,17 @@ export function isRetryable(error: unknown): boolean {
 
 /**
  * Turns a failed call to Google (Places, Geocoding, Gemini) into an H3 error
- * whose `message` tells the user what actually went wrong. statusMessage is
- * kept ASCII because it travels in the HTTP status line; the Turkish text
- * goes in `message`, which reaches the client in the JSON body.
+ * whose localised `message` tells the user what actually went wrong.
  */
-export function upstreamError(service: string, error: unknown): Error {
+export function upstreamError(service: string, error: unknown, locale: ServerLocale): Error {
   const fetchError = asFetchError(error)
   const status = fetchError?.statusCode
 
-  let message: string
-  if (fetchError && status === undefined) {
-    message = `${service} yanıt vermedi (zaman aşımı). Biraz sonra tekrar dene.`
-  } else if (status === 429) {
-    message = `${service} kotası/istek sınırı doldu. Biraz bekleyip tekrar dene.`
-  } else if (status === 400 || status === 401 || status === 403) {
-    message = `${service} isteği reddetti (${status}). API anahtarını ve etkin API'leri kontrol et.`
-  } else if (status !== undefined && status >= 500) {
-    message = `${service} şu an yoğun ya da erişilemiyor (${status}). Biraz sonra tekrar dene.`
-  } else {
-    message = `${service} isteği başarısız oldu.`
-  }
-
-  return createError({
-    statusCode: 502,
-    statusMessage: 'Upstream request failed',
-    message,
-    cause: error,
-  })
+  if (fetchError && status === undefined) return appError(502, locale, 'upstreamTimeout', { service }, error)
+  if (status === 429) return appError(502, locale, 'upstreamQuota', { service }, error)
+  if (status === 400 || status === 401 || status === 403) return appError(502, locale, 'upstreamRejected', { service, status }, error)
+  if (status !== undefined && status >= 500) return appError(502, locale, 'upstreamDown', { service, status }, error)
+  return appError(502, locale, 'upstreamFailed', { service }, error)
 }
 
 /** Runs `fn`, retrying transient upstream failures with a growing delay. */

@@ -1,16 +1,7 @@
-import { deleteBusiness, getBusiness } from '../../utils/db'
+import { deleteBusiness } from '../../utils/db'
+import { requireBusiness } from '../../utils/request'
 
-export default defineEventHandler(async (event) => {
-  const id = Number(getRouterParam(event, 'id'))
-  if (!Number.isInteger(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Geçersiz id' })
-  }
-
-  const business = getBusiness(id)
-  if (!business) {
-    throw createError({ statusCode: 404, statusMessage: 'Not Found', message: 'İşletme bulunamadı' })
-  }
-
-  deleteBusiness(id)
+export default defineEventHandler((event) => {
+  deleteBusiness(requireBusiness(event).id)
   return { success: true }
 })
