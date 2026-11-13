@@ -2,14 +2,14 @@
 
 ## Supported versions
 
-ProspectForge is pre-1.0. Only the current `main` branch receives fixes.
+Leadwalk is pre-1.0. Only the current `main` branch receives fixes.
 
 ## Reporting a vulnerability
 
 **Do not open a public issue for a security problem.**
 
 Report privately through GitHub's
-[private vulnerability reporting](https://github.com/furkankoykiran/ProspectForge/security/advisories/new)
+[private vulnerability reporting](https://github.com/furkankoykiran/Leadwalk/security/advisories/new)
 for this repository. Please include:
 
 - what the issue is and roughly how severe you think it is,
@@ -23,7 +23,7 @@ publicly.
 
 ## Threat model — read this first
 
-ProspectForge is a **personal, single-user, fully local tool**, not a hosted
+Leadwalk is a **personal, single-user, fully local tool**, not a hosted
 service. Its security posture follows from that, and several properties that
 would be vulnerabilities in a SaaS are deliberate here:
 
@@ -31,10 +31,10 @@ would be vulnerabilities in a SaaS are deliberate here:
   running app can read and modify all of its data. It is meant to be run on
   `localhost`.
 - **All data lives in one unencrypted SQLite file** on the machine running the
-  app (`data/prospectforge.db` by default).
+  app (`data/leads.db` by default; `data/prospectforge.db` is still used if it exists).
 - **The app enforces no spending cap.** Discovery and generation call paid
-  Google APIs. Quota limits must be set in the Google Cloud console; see the
-  cost warning in the [README](README.md#cost-and-billing-warning).
+  Google APIs. Quota limits must be set in the Google Cloud console; see
+  [Google data, quotas and cost](README.md#google-data-quotas-and-cost).
 
 **Do not expose an instance to the public internet as-is.** If you intend to
 deploy it somewhere reachable, authentication, transport security and rate
@@ -42,12 +42,14 @@ limiting are yours to add.
 
 Reports that amount to "there is no login screen" or "the SQLite file is
 readable" are already documented above and are not treated as vulnerabilities.
-Reports about the app leaking keys, executing untrusted input, or being
-exploitable by a malicious API response very much are.
+Reports about the app leaking keys, executing untrusted input (for example
+business names or reviews from Google being rendered as HTML, or spreadsheet
+formulas in the CSV export), or being exploitable by a malicious API response
+very much are.
 
 ## API keys
 
-ProspectForge uses three Google API keys. Handle them as follows:
+Leadwalk uses three Google API keys. Handle them as follows:
 
 - `GOOGLE_MAPS_API_KEY` and `GEMINI_API_KEY` are **server-side secrets**. They
   are read from the environment and must never reach the browser or the
@@ -71,6 +73,7 @@ compromised even if the commit was deleted seconds later.
 
 ## Dependencies
 
-`npm audit` currently reports advisories in transitive dependencies; these are
-tracked as a known issue in the [README](README.md#known-issues) rather than
-silently ignored. Dependabot opens update pull requests weekly.
+`npm audit` currently reports advisories in transitive dependencies; they are
+tracked rather than silently ignored, and fixes that need major-version bumps
+come as their own pull requests. Dependabot opens update pull requests weekly.
+

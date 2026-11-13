@@ -1,266 +1,211 @@
-# ProspectForge
+<p align="center">
+  <a href="https://github.com/furkankoykiran/Leadwalk">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="brand/svg/logo-horizontal-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="brand/svg/logo-horizontal.svg">
+      <img alt="Leadwalk" src="brand/svg/logo-horizontal.svg" width="300">
+    </picture>
+  </a>
+</p>
 
-![Nuxt](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxtdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-local--storage-003B57?logo=sqlite&logoColor=white)
-[![CI](https://github.com/furkankoykiran/ProspectForge/actions/workflows/ci.yml/badge.svg)](https://github.com/furkankoykiran/ProspectForge/actions/workflows/ci.yml)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+<h3 align="center">Walk in prepared.</h3>
 
-**An AI-assisted local business discovery and sales-preparation tool.** Pick an
-area on a map and ProspectForge pulls the nearby businesses from Google Places,
-works out what software each one might actually need, and drafts the pitch you
-would open with when you walk in the door — all running on your own machine,
-storing everything in a single local SQLite file.
+<p align="center">
+  The open-source, local-first field-sales workspace: find the businesses around you,<br>
+  rank who needs you most, and walk in with a tailored pitch.
+</p>
 
-It is built for exactly one workflow: walking into a business with something
-concrete in hand, instead of a cold "can we talk about your website?".
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#google-data-quotas-and-cost">Cost</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="SECURITY.md">Security</a> ·
+  <a href="brand/BRAND.md">Brand</a>
+</p>
 
-> **Project status — foundation.** This repository is early-stage. The current
-> tree is the application plus a verification and governance baseline
-> (typecheck, lint, unit tests, CI). Substantial architectural redesign is
-> planned; see [Roadmap](#roadmap) for what comes next.
+<p align="center">
+  <a href="https://github.com/furkankoykiran/Leadwalk/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/furkankoykiran/Leadwalk/ci.yml?branch=main&style=flat-square&label=CI"></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-C2410C?style=flat-square"></a>
+  <a href="https://nuxt.com"><img alt="Built with Nuxt 4" src="https://img.shields.io/badge/Nuxt-4-00DC82?style=flat-square&logo=nuxt&logoColor=white"></a>
+  <a href="#features"><img alt="Interface in English and Turkish" src="https://img.shields.io/badge/UI-EN%20%C2%B7%20TR-1C1917?style=flat-square"></a>
+</p>
 
----
+<p align="center"><b>English</b> · <a href="README.tr.md">Türkçe</a></p>
 
-## How it works
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/dashboard-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/en/dashboard-light.png">
+    <img alt="Leadwalk's Today dashboard: lead count, leads without a website, follow-ups, won deals, the pipeline and the hottest unvisited leads" src="docs/screenshots/en/dashboard-light.png" width="900">
+  </picture>
+</p>
 
-1. **Discover** — drop a pin on the map or type an address, then set a radius.
-   ProspectForge asks Google Places for the businesses nearby and stores them
-   locally: name, category, address, phone, website, rating, and a few real
-   customer reviews.
-2. **Decide** — open a business and generate. Gemini reads everything known
-   about it and proposes **2–3 concrete software/product ideas** (a QR menu, a
-   booking system, a loyalty programme, a site the owner can update themselves),
-   each with its own price estimate.
-3. **Pitch** — a short business profile and a copy-paste-ready door-opening
-   sales script are generated alongside the ideas.
-4. **Track** — mark businesses as visited / won / lost as you work an area;
-   filter and search the growing list; see everything colour-coded on the map.
+## Why Leadwalk
 
-Nothing here scales by accident — it is built for one person working one town on
-foot, business by business.
+Selling software to local shops is won on foot: you walk in, you ask for a
+minute, and you either have something concrete for *that* business or you
+don't. Lead finders give you a spreadsheet; CRMs give you a pipeline. Neither
+tells you which café on this street most needs a booking system, or what to
+say when you open the door.
+
+Leadwalk does. It searches the area around you, scores every business on how
+much it needs what you build, writes a warm, specific opener and 2–3 priced
+ideas, plans the walk, and tracks every visit to a yes. It runs entirely on
+your machine — one SQLite file, no account, no telemetry.
 
 ## Features
 
-- **Discovery from a map pin or an address**, radius-limited, with re-discovery
-  that refreshes Google data without destroying anything the AI generated
-- **Noise filtering** — bus stops, ATMs, petrol stations, places of worship and
-  parks are excluded automatically
-- **AI product ideas** rather than one canned sales line — each business gets
-  its own realistic, priced suggestions
-- **Real review excerpts** in the language they were written in (no machine
-  translation)
-- **Full map view** of every discovered business, coloured by status
-- **Filter and search** by status and category, with live counts
-- **100% local storage** — one SQLite file, no cloud database, no account, no
-  external analytics
-- **Built-in usage counter** for the two operations that cost money, so you
-  always know how close you are to the free quota
-- **One-click reset** to wipe all stored data
+- **Discover** — drop a pin or type an address, pick a radius (500 m – 5 km)
+  and a category. Leadwalk keeps only places you can walk into: no monuments,
+  parks, permanently closed or service-area-only businesses.
+- **Opportunity score** — 0–100, explainable and free: no website, few
+  reviews, healthy rating, fits a booking system or QR menu, cash only,
+  opening soon. Every point shows *why*.
+- **Prepare** — Gemini writes a business profile, a low-pressure door opener
+  and 2–3 priced software ideas from the category, reviews, opening hours and
+  service details Google reports — in English or Turkish.
+- **Today dashboard** — KPIs, pipeline and visit→won conversion, the hottest
+  unvisited leads, follow-ups due or overdue, recent activity.
+- **Lead management** — Turkish-aware search, quick filters (no website, hot,
+  open now, few reviews, follow-up due), bulk stage changes, CSV export.
+- **Walk** — a walking route through the leads you pick, opened in Google
+  Maps; call or WhatsApp in one tap.
+- **Track** — New → Prepared → Visited → Won / Lost, follow-up dates, deal
+  values, notes and a full activity history.
+- **Map** — colour by stage or by opportunity, with the areas you already searched.
+- **Bilingual and local** — English and Turkish, picked from the browser; every
+  date in the browser's time zone; light and dark themes follow the OS.
 
-## Tech stack
+<details>
+<summary><b>More screenshots</b></summary>
+<br>
 
-| Layer | Choice |
-| --- | --- |
-| Framework | [Nuxt 4](https://nuxt.com) (Vue 3, TypeScript, SSR) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) (CSS-first config, no `tailwind.config.js`) |
-| Database | [SQLite](https://sqlite.org) via [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3) — a single file, no separate server process |
-| Business discovery | [Google Places API (New)](https://developers.google.com/maps/documentation/places/web-service/op-overview) + [Geocoding API](https://developers.google.com/maps/documentation/geocoding) |
-| Map UI | [Maps JavaScript API](https://developers.google.com/maps/documentation/javascript) |
-| AI generation | [Gemini API](https://ai.google.dev/) (`gemini-flash-latest`, structured JSON output) |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/leads-dark.png">
+  <img alt="Leads list with opportunity scores, quick filters and stage badges" src="docs/screenshots/en/leads-light.png" width="900">
+</picture>
 
----
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/detail-dark.png">
+  <img alt="Lead detail with the score explanation, Google facts, next step and notes" src="docs/screenshots/en/detail-light.png" width="900">
+</picture>
 
-## Getting started
+</details>
 
-### Requirements
+## Quick start
 
-- Node.js **22.12+** and npm **11+** (both enforced via `engines`)
-- A Google Cloud account, for Maps Platform
-- A Google AI Studio account, for Gemini (free, no card required to start)
-
-### Setup
+Requires **Node 22.12+** and **npm 11+**.
 
 ```bash
-git clone https://github.com/furkankoykiran/ProspectForge.git
-cd ProspectForge
+git clone https://github.com/furkankoykiran/Leadwalk.git
+cd Leadwalk
 npm install
 cp .env.example .env
-```
-
-Fill in the three values in `.env` (see [API keys](#api-keys)), then:
-
-```bash
 npm run dev
 ```
 
-Open <http://localhost:3000> — it redirects straight to the businesses screen.
+Open <http://localhost:3000>. The app boots without keys; each feature tells
+you clearly which key it needs.
 
-### Scripts
+## Configuration
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Nuxt dev server on port 3000 |
-| `npm run build` | Production build into `.output/` |
-| `npm run preview` | Serve the production build |
-| `npm run typecheck` | `vue-tsc --noEmit` across app, server and shared code |
-| `npm run lint` | ESLint over the whole repo |
-| `npm run lint:fix` | ESLint with `--fix` |
-| `npm test` | Vitest unit tests, single run |
-| `npm run test:watch` | Vitest in watch mode |
-
-`npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all run on
-every pull request, on Node 22 and 24 — see
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml).
-
-Node 20 is not supported even though Nuxt 4 itself runs on 20.19+: ESLint 10
-reaches `Object.groupBy`, which does not exist before Node 21, so lint cannot
-run there.
-
----
-
-## API keys
-
-ProspectForge needs **three** keys, all from Google. Two are server-side
-secrets; one is deliberately exposed to the browser (explained below). None of
-them are required for the app to boot — each feature fails at request time if
-its key is missing.
-
-### 1. `GOOGLE_MAPS_API_KEY` — server-side only
-
-Used for the **Places API (New)** (discovery) and the **Geocoding API**
-(turning a typed address into coordinates).
-
-1. Open the [Google Cloud Console](https://console.cloud.google.com/) and
-   create a project (or reuse one).
-2. **APIs & Services → Library** — enable **Places API (New)** and
-   **Geocoding API**.
-3. **APIs & Services → Credentials → Create Credentials → API key.**
-4. Restrict the key to just those two APIs (Credentials → the key →
-   _API restrictions_).
-5. Paste it into `.env` as `GOOGLE_MAPS_API_KEY`.
-
-### 2. `NUXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` — public, browser-side
-
-Used only to render the interactive map (pin dropping and the map view). This
-key is deliberately **separate** from the one above — the Maps JavaScript API
-works this way and cannot be used server-side. Restrict it to keep the risk low:
-
-1. In the same Cloud project → **APIs & Services → Library** — enable
-   **Maps JavaScript API**.
-2. Create a **second** API key.
-3. Restrict it by **HTTP referrer** (e.g. `localhost:3000/*` for local
-   development, your own domain if you ever deploy it).
-4. Paste it into `.env` as `NUXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`.
-
-### 3. `GEMINI_API_KEY`
-
-1. Go to [Google AI Studio](https://aistudio.google.com/) and sign in.
-2. **Get API key → Create API key.**
-3. Paste it into `.env` as `GEMINI_API_KEY`.
+| Variable | Used for | How to get it |
+|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | Places API (New) and Geocoding — **server only** | Google Cloud Console → enable both APIs → create a key → restrict it to those two APIs |
+| `NUXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` | Maps JavaScript API — the maps | A second key → enable Maps JavaScript API → restrict by HTTP referrer, e.g. `http://localhost:3000/*` |
+| `GEMINI_API_KEY` | Profile, pitch and ideas | [Google AI Studio](https://aistudio.google.com/) → Get API key. A project without billing stays on the free tier. |
+| `DATABASE_PATH` | Optional SQLite location | Defaults to `data/leads.db` |
 
 `.env` is gitignored. Never commit real keys — see [SECURITY.md](SECURITY.md).
 
----
+## Google data, quotas and cost
 
-## Cost and billing warning
+Only **Discover** and **Prepare** call paid Google APIs. Browsing, filtering,
+the dashboard, notes and the map's markers read the local database.
 
-Read this before you start clicking.
+| Call | When | Billed as | Free per month |
+|---|---|---|---|
+| Places Nearby Search | each Discover | **Enterprise + Atmosphere** (reviews are requested) | **1,000** |
+| Geocoding | Discover by typed address | Essentials | 10,000 |
+| Maps JavaScript | each map load | Essentials | 10,000 |
+| Gemini | each Prepare | free tier, rate-limited daily | — |
 
-- **Only two actions cost money:** pressing **Discover**, and pressing
-  **Generate profile + pitch**. Browsing, filtering, viewing the map and
-  everything else only reads the local database and never incurs a charge.
-- **Gemini has a real free tier** — no card required, rate-limited to roughly
-  1,500 requests/day on `gemini-flash-latest`. Normal use never gets close.
-- **Google Maps Platform is not free by default.** Google removed the old
-  $200/month shared credit in March 2025. Each API now has its **own monthly
-  free quota**:
-  - Geocoding API: 10,000 free calls/month (Essentials tier)
-  - Places Nearby Search: 5,000 free calls/month (Pro tier — this app requests
-    contact and rating data)
-  - Maps JavaScript API: 10,000 free map loads/month
+A Places request is billed at the highest tier of any field it asks for.
+Because reviews already put every search in Enterprise + Atmosphere, Leadwalk
+requests everything else that tier includes **at no extra cost**: business
+status, opening hours and time zone, price level, international phone, the
+Maps link, Google's localised category label, neighbourhood, reservation /
+delivery / payment details and Google's summaries where available. Photos are
+not requested — images are a separately billed SKU.
 
-  Each Discover click spends one geocode call plus one nearby-search call. One
-  person walking one town stays comfortably inside the free tier — but **this
-  app enforces no hard spending cap of its own.**
+Cap your spend in Cloud Console → Places API → **Quotas** (e.g. 30 requests a
+day ≈ 900 a month) and add a budget alert. The sidebar shows this month's use
+against the 1,000 free searches.
 
-- **Set a real ceiling yourself.** In Cloud Console → APIs & Services → the API
-  → **Quotas**, set a daily request limit well under the monthly free quota
-  (e.g. 100–150/day for Nearby Search). Also set a small budget alert under
-  **Billing → Budgets & alerts** as a tripwire. This protects you from a bug or
-  an accidental loop draining the quota, not from normal use.
-- **Watch the built-in counter.** The sidebar shows today's searches and
-  generations — a live, zero-setup indicator you can check without leaving the
-  app.
+> [!IMPORTANT]
+> Google's Maps Platform terms (§3.2.3 and the Places service terms) allow
+> storing **place IDs** indefinitely and **coordinates for up to 30 days**,
+> but give no licence to cache other Places content long-term. Leadwalk keeps
+> a lead's Google fields locally so it works offline on the street. If you
+> build on it, review the terms for your use; the compliant pattern is to keep
+> place IDs plus your own notes and re-fetch details on demand.
 
-## Limitations — read before relying on this
+## Tech stack
 
-Regardless of how it looks, this is a **personal, single-user, fully local**
-tool, not a hosted SaaS:
+- [Nuxt 4](https://nuxt.com) (Vue 3, TypeScript) — client-rendered app and Nitro API
+- [Tailwind CSS 4](https://tailwindcss.com) — design tokens for light and dark
+- [SQLite](https://sqlite.org) via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) — one self-migrating file
+- [Google Places API (New)](https://developers.google.com/maps/documentation/places/web-service), Geocoding and Maps JavaScript
+- [Gemini API](https://ai.google.dev/) — `gemini-flash-latest`, falling back to `gemini-flash-lite-latest` when busy
+- [Vitest](https://vitest.dev) and [Playwright](https://playwright.dev) — unit and end-to-end tests
 
-- **No authentication and no multi-user support.** Anyone who can reach the
-  running app can reach all of the data.
-- **Data lives in a single file** (`data/prospectforge.db`) on the machine
-  running the app. No sync, no backups, no cloud copy — losing that file means
-  losing everything.
-- **The entire UI and all AI output are in Turkish.** The tool was built for
-  field sales in Turkey and has not been internationalised. See
-  [Roadmap](#roadmap).
-- **Search is hard-capped at 20 results.** Google's Nearby Search endpoint caps
-  at 20 and does not paginate. In dense areas, sweep with smaller radii rather
-  than expecting one large search to find everything.
-- **Test coverage is limited to pure domain logic.** Unit tests cover the
-  category, status, maps-URL and persistence helpers. There are no
-  component-level or end-to-end tests, and the Google/Gemini integrations are
-  exercised only manually against the live APIs.
+## Testing
 
----
-
-## Project structure
-
-```
-app/                    Nuxt app (client)
-  components/           Business cards, detail view, map picker, icons
-  composables/          Clipboard, confirm dialog, Google Maps script loader
-  layouts/              Sidebar shell
-  pages/                businesses, businesses/[id], discover, map
-  utils/                Category, status, maps-URL and map-style helpers
-server/                 Nitro server
-  api/                  REST endpoints (discover, process, businesses, usage)
-  utils/                SQLite access, Gemini client, Places client
-shared/types/           Types shared between client and server
-test/                   Vitest unit tests
+```bash
+npm test                  # unit tests
+npm run test:e2e:offline  # browser E2E against a throwaway database
+npm run test:e2e          # includes @live tests that call Google and Gemini
 ```
 
-## Roadmap
+E2E starts its own server on port 3000 with `data/e2e.db` — stop `npm run dev`
+first, and run `npx playwright install chromium` once. CI runs lint, typecheck,
+unit tests and the build on Node 22 and 24, plus the offline E2E suite.
 
-The near-term direction, in rough order:
+<details>
+<summary><b>All scripts</b></summary>
 
-1. **Internationalisation** — the UI and the AI prompts are hardcoded Turkish;
-   extracting strings and making the prompt locale-aware is the biggest single
-   unlock for other contributors.
-2. **Broader test coverage** — component tests and contract tests around the
-   Places and Gemini clients, which are currently only manually verified.
-3. **Dependency remediation** — `npm audit` currently reports known advisories
-   in the transitive dependency tree (see [Known issues](#known-issues)).
-4. **Architectural redesign** — a provider abstraction so discovery and
-   generation are not hardwired to Google and Gemini.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server on port 3000 |
+| `npm run build` / `npm run preview` | Production build / serve it |
+| `npm run typecheck` | `vue-tsc` over app, server, shared and tests |
+| `npm run lint` / `npm run lint:fix` | ESLint |
+| `npm test` | Vitest unit tests |
+| `npm run test:e2e` / `test:e2e:offline` | Playwright E2E, with or without live API tests |
+| `npm run docs:screenshots` | Regenerate the README screenshots from seed data |
+| `npm run brand:build` | Rebuild the brand kit and favicon set |
 
-## Known issues
+</details>
 
-- `npm audit` reports advisories in transitive dependencies. These have not been
-  remediated in this foundation commit because the fixes may require dependency
-  major-version bumps that warrant their own reviewed change. Run `npm audit`
-  for the current list.
+## Limitations
+
+- **Single user, no authentication.** Anyone who can reach the app can read
+  and change everything. Run it on your own machine.
+- **One file, no sync.** Export CSV for backups.
+- **20 results per search** (Google's cap). Sweep dense areas with a smaller
+  radius; the map shows what you have covered.
+- **AI output can be wrong.** Read the pitch before you use it.
 
 ## Contributing
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
-workflow, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for expected conduct.
-`main` is protected: all changes land through a reviewed, squash-merged pull
-request with CI green.
+Issues and pull requests are welcome — start with [CONTRIBUTING.md](CONTRIBUTING.md)
+(including how to keep the Turkish translations in step) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Security reports go through
+[SECURITY.md](SECURITY.md), not public issues.
 
-## License
+## License and brand
 
-[MIT](LICENSE).
+Code: [Apache-2.0](LICENSE). The Leadwalk name and logo are not covered by the
+licence (see [NOTICE](NOTICE) and [brand/BRAND.md](brand/BRAND.md)) — forks are
+welcome under their own name.

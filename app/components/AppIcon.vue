@@ -3,7 +3,7 @@ defineProps<{ name: string }>()
 </script>
 
 <template>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
     <template v-if="name === 'search'">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.3-4.3" />
@@ -73,6 +73,56 @@ defineProps<{ name: string }>()
     </template>
     <template v-else-if="name === 'wrench'">
       <path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2 2.6-2.6z" />
+    </template>
+    <template v-else-if="name === 'home'">
+      <path d="M3 11l9-7 9 7M5 9.5V20h5v-6h4v6h5V9.5" />
+    </template>
+    <template v-else-if="name === 'route'">
+      <circle cx="6" cy="18" r="2.2" />
+      <circle cx="18" cy="6" r="2.2" />
+      <path d="M8.2 18H15a3 3 0 000-6H9a3 3 0 010-6h6.8" />
+    </template>
+    <template v-else-if="name === 'download'">
+      <path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M4.5 19.5h15" />
+    </template>
+    <template v-else-if="name === 'check'">
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </template>
+    <template v-else-if="name === 'calendar'">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </template>
+    <template v-else-if="name === 'note'">
+      <path d="M5 4h10l4 4v12H5z" />
+      <path d="M15 4v4h4M8.5 12.5h7M8.5 16h5" />
+    </template>
+    <template v-else-if="name === 'clock'">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </template>
+    <template v-else-if="name === 'message'">
+      <path d="M4 19.5l1.3-3.8A8 8 0 1112 20a8 8 0 01-3.9-1z" />
+      <path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01" />
+    </template>
+    <template v-else-if="name === 'navigation'">
+      <path d="M4 11l16-7-7 16-2-7-7-2z" />
+    </template>
+    <template v-else-if="name === 'external'">
+      <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
+    </template>
+    <template v-else-if="name === 'flame'">
+      <path d="M12 21c-3.9 0-7-2.7-7-6.6 0-3 2-5.2 3.6-6.8.4 1.6 1.4 2.8 2.6 3.3 0-3.2 1.5-6 4.3-7.9-.4 2.8.8 4.6 2.2 6.2C19.2 10.8 19 12.5 19 14.4 19 18.3 15.9 21 12 21z" />
+    </template>
+    <template v-else-if="name === 'language'">
+      <path d="M4 5h8M8 3v2M5.5 5c.5 3.5 3 6.5 6 8M10.5 5c-.5 3-3 6.5-6.5 8" />
+      <path d="M12.5 21l4-9 4 9M14 17.5h5" />
+    </template>
+    <template v-else-if="name === 'plus'">
+      <path d="M12 5v14M5 12h14" />
+    </template>
+    <template v-else-if="name === 'layers'">
+      <path d="M12 3l9 5-9 5-9-5 9-5z" />
+      <path d="M3 13l9 5 9-5" />
     </template>
     <template v-else>
       <path d="M4 21V9l8-6 8 6v12M9 21v-7h6v7" />

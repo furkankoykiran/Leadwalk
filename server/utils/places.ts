@@ -1,6 +1,9 @@
-import type { DiscoveredBusiness, ReviewSnippet } from '#shared/types/business'
-
-const MAX_REVIEWS_STORED = 3
+import type { DiscoveredBusiness } from '#shared/types/business'
+import type { ServerLocale } from './locale'
+import { appError } from './locale'
+import type { PlaceResult } from './place-mapping'
+import { isProspect, toDiscoveredBusiness } from './place-mapping'
+import { upstreamError, withRetry } from './upstream'
 
 export interface GeocodeResult {
   lat: number
@@ -12,15 +15,23 @@ interface GeocodeResponse {
   results: Array<{ geometry: { location: { lat: number; lng: number } } }>
 }
 
-export async function geocodeAddress(address: string, apiKey: string): Promise<GeocodeResult> {
-  const res = await $fetch<GeocodeResponse>('https://maps.googleapis.com/maps/api/geocode/json', {
-    query: { address, key: apiKey },
-  })
-  const first = res.results[0]
-  if (res.status !== 'OK' || !first) {
-    throw new Error(`Adres bulunamadı: ${address}`)
+export async function geocodeAddress(address: string, apiKey: string, locale: ServerLocale): Promise<GeocodeResult> {
+  let res: GeocodeResponse
+  try {
+    res = await withRetry(() => $fetch<GeocodeResponse>('https://maps.googleapis.com/maps/api/geocode/json', {
+      query: { address, key: apiKey, language: locale },
+      timeout: 15_000,
+    }))
+  } catch (error) {
+    throw upstreamError('Google Geocoding', error, locale)
   }
-  return first.geometry.location
+
+  // The Geocoding API reports most failures as HTTP 200 with a status field.
+  const first = res.results[0]
+  if (res.status === 'OK' && first) return first.geometry.location
+  if (res.status === 'ZERO_RESULTS' || (res.status === 'OK' && !first)) throw appError(404, locale, 'addressNotFound', { address })
+  if (res.status === 'REQUEST_DENIED') throw appError(502, locale, 'geocodeDenied')
+  throw appError(502, locale, 'geocodeFailed', { status: res.status })
 }
 
 // Non-commercial place types we never want cluttering discovery results
@@ -42,35 +53,56 @@ const DEFAULT_EXCLUDED_TYPES = [
   'gas_station', 'atm', 'butcher_shop',
 ]
 
-// Types Google returns as a place's primaryType but refuses as an
-// excludedTypes request value — filtered out locally after the fact instead.
-const POST_FILTER_EXCLUDED_TYPES = ['point_of_interest', 'toll_booth', 'establishment']
-
-interface SearchNearbyResponse {
-  places?: Array<{
-    id: string
-    displayName?: { text: string }
-    primaryType?: string
-    formattedAddress?: string
-    nationalPhoneNumber?: string
-    websiteUri?: string
-    rating?: number
-    userRatingCount?: number
-    location?: { latitude: number; longitude: number }
-    reviews?: Array<{
-      rating?: number
-      text?: { text: string }
-      originalText?: { text: string }
-      authorAttribution?: { displayName?: string }
-    }>
-  }>
-}
+// Every field below is in the Pro, Enterprise or Enterprise + Atmosphere
+// tier. `places.reviews` already puts each call in the Enterprise +
+// Atmosphere SKU (the highest field decides the price), so the extra fields
+// cost nothing more per search. Photos are deliberately not requested:
+// fetching an image is a separately billed SKU and photo names may not be
+// cached. https://developers.google.com/maps/documentation/places/web-service/nearby-search
+const FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.primaryType',
+  'places.primaryTypeDisplayName',
+  'places.types',
+  'places.formattedAddress',
+  'places.addressComponents',
+  'places.nationalPhoneNumber',
+  'places.internationalPhoneNumber',
+  'places.websiteUri',
+  'places.googleMapsUri',
+  'places.rating',
+  'places.userRatingCount',
+  'places.priceLevel',
+  'places.businessStatus',
+  'places.pureServiceAreaBusiness',
+  'places.location',
+  'places.utcOffsetMinutes',
+  'places.regularOpeningHours',
+  'places.editorialSummary',
+  'places.reviewSummary',
+  'places.reviews',
+  'places.reservable',
+  'places.delivery',
+  'places.takeout',
+  'places.dineIn',
+  'places.servesBreakfast',
+  'places.servesLunch',
+  'places.servesDinner',
+  'places.servesCoffee',
+  'places.servesBeer',
+  'places.servesWine',
+  'places.outdoorSeating',
+  'places.goodForGroups',
+  'places.paymentOptions',
+].join(',')
 
 export async function nearbySearch(
   center: GeocodeResult,
   radiusMeters: number,
   category: string | undefined,
   apiKey: string,
+  locale: ServerLocale,
 ): Promise<DiscoveredBusiness[]> {
   const body: Record<string, unknown> = {
     maxResultCount: 20,
@@ -78,10 +110,10 @@ export async function nearbySearch(
     // next to the search point in favor of "bigger" places further away.
     // DISTANCE ranks by proximity to the center instead.
     rankPreference: 'DISTANCE',
-    // Hints the response language (business names, formatted address). Does
-    // NOT stop Google from auto-translating review text — that's handled
-    // below by reading `originalText` instead of `text`.
-    languageCode: 'tr',
+    // Language of names, type labels and opening-hour lines. Does NOT stop
+    // Google from auto-translating review text — that's handled by reading
+    // `originalText` instead of `text`.
+    languageCode: locale,
     locationRestriction: {
       circle: { center: { latitude: center.lat, longitude: center.lng }, radius: radiusMeters },
     },
@@ -93,52 +125,17 @@ export async function nearbySearch(
     body.excludedTypes = DEFAULT_EXCLUDED_TYPES
   }
 
-  const res = await $fetch<SearchNearbyResponse>('https://places.googleapis.com/v1/places:searchNearby', {
-    method: 'POST',
-    headers: {
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': [
-        'places.id',
-        'places.displayName',
-        'places.primaryType',
-        'places.formattedAddress',
-        'places.nationalPhoneNumber',
-        'places.websiteUri',
-        'places.rating',
-        'places.userRatingCount',
-        'places.location',
-        'places.reviews',
-      ].join(','),
-    },
-    body,
-  })
+  let res: { places?: PlaceResult[] }
+  try {
+    res = await withRetry(() => $fetch<{ places?: PlaceResult[] }>('https://places.googleapis.com/v1/places:searchNearby', {
+      method: 'POST',
+      timeout: 20_000,
+      headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': FIELD_MASK },
+      body,
+    }))
+  } catch (error) {
+    throw upstreamError('Google Places', error, locale)
+  }
 
-  const filtered = (res.places ?? []).filter(p => !POST_FILTER_EXCLUDED_TYPES.includes(p.primaryType ?? ''))
-
-  return filtered.map((p) => {
-    const reviews: ReviewSnippet[] = (p.reviews ?? [])
-      .slice(0, MAX_REVIEWS_STORED)
-      .filter(r => r.originalText?.text || r.text?.text)
-      .map(r => ({
-        author: r.authorAttribution?.displayName ?? 'Anonim',
-        rating: r.rating ?? 0,
-        // originalText is the review as the author actually wrote it;
-        // `text` is Google's auto-translation, which we don't want.
-        text: (r.originalText?.text ?? r.text!.text),
-      }))
-
-    return {
-      place_id: p.id,
-      name: p.displayName?.text ?? 'İsimsiz İşletme',
-      category: p.primaryType ?? null,
-      address: p.formattedAddress ?? null,
-      phone: p.nationalPhoneNumber ?? null,
-      website_url: p.websiteUri ?? null,
-      rating: p.rating ?? null,
-      review_count: p.userRatingCount ?? null,
-      lat: p.location?.latitude ?? null,
-      lng: p.location?.longitude ?? null,
-      reviews_json: reviews.length > 0 ? JSON.stringify(reviews) : null,
-    }
-  })
+  return (res.places ?? []).filter(isProspect).map(p => ({ ...toDiscoveredBusiness(p), google_locale: locale }))
 }
