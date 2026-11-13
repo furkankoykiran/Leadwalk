@@ -10,6 +10,7 @@ import type {
   ReviewSummary,
 } from '#shared/types/business'
 import { parseJson } from '#shared/utils/opportunity'
+import { isLocale, LOCALE_INFO } from '#shared/locales'
 
 const props = defineProps<{ business: Business; activities: Activity[] }>()
 const emit = defineEmits<{ updated: [business: Business]; activities: [activities: Activity[]] }>()
@@ -29,11 +30,13 @@ const noteDraft = ref('')
 const lead = computed(() => toLeadView(props.business))
 const reviews = computed(() => parseJson<ReviewSnippet[]>(props.business.reviews_json, []))
 const ideas = computed(() => parseJson<ProductIdea[]>(props.business.ideas_json, []))
-const hours = computed(() => parseJson<OpeningHours | null>(props.business.opening_hours_json, null))
+// Rendered from Google's language-neutral periods in the UI language (the
+// stored weekday lines are in whatever language the place was discovered in).
+const hours = computed(() => formatOpeningHours(parseJson<OpeningHours | null>(props.business.opening_hours_json, null), LOCALE_INFO[locale.value].intl))
 const signals = computed(() => parseJson<BusinessSignals>(props.business.signals_json, {}))
 const reviewSummary = computed(() => parseJson<ReviewSummary | null>(props.business.review_summary_json, null))
 const whatsapp = computed(() => whatsappUrl(props.business.international_phone))
-const category = computed(() => categoryLabel(props.business.category, locale.value, props.business.type_label))
+const category = computed(() => businessCategory(props.business, locale.value))
 
 const signalChips = computed(() => (Object.entries(signals.value) as Array<[keyof BusinessSignals, boolean]>)
   .map(([key, value]) => ({ key, value, text: value ? t(`detail.signals.${key}`) : t('detail.no', { thing: t(`detail.signals.${key}`) }) })))
@@ -51,9 +54,21 @@ const ringStyle = computed(() => ({
   background: `conic-gradient(var(--accent) 0 ${lead.value.score.score}%, var(--line) ${lead.value.score.score}% 100%)`,
 }))
 
+// Google's summaries must be shown unaltered, so when they are in another
+// language than the UI we say which one instead of translating them.
+const googleLanguage = computed(() => {
+  const code = props.business.google_locale
+  if (!code || code === locale.value) return null
+  try {
+    return new Intl.DisplayNames([LOCALE_INFO[locale.value].intl], { type: 'language' }).of(code) ?? null
+  } catch {
+    return null
+  }
+})
+
 const generatedLanguage = computed(() => {
   const code = props.business.generated_locale
-  return code === 'en' || code === 'tr' ? t(`language.${code}`) : null
+  return isLocale(code) ? LOCALE_INFO[code].native : null
 })
 
 async function generate() {
@@ -290,22 +305,25 @@ async function removeLead() {
 
           <p v-if="business.price_level" class="text-sm text-ink-2"><span class="font-semibold">{{ t('detail.priceLevel') }}:</span> {{ t(`detail.price.${business.price_level}`) }}</p>
 
-          <div v-if="hours?.weekday_descriptions.length" class="space-y-1">
+          <div v-if="hours" class="space-y-1" data-testid="opening-hours">
             <p class="text-sm font-semibold">{{ t('detail.hours') }}</p>
-            <ul class="text-sm text-ink-2 grid sm:grid-cols-2 gap-x-6 gap-y-0.5">
-              <li v-for="line in hours.weekday_descriptions" :key="line">{{ line }}</li>
+            <p v-if="hours.allDay" class="text-sm text-ink-2">{{ t('detail.open24') }}</p>
+            <ul class="text-sm text-ink-2 space-y-0.5 tabular-nums">
+              <li v-for="d in hours.allDay ? [] : hours.days" :key="d.day" class="grid grid-cols-[8.5rem_1fr] gap-x-3">
+                <span class="first-letter:uppercase">{{ d.name }}:</span> <span :class="d.ranges.length ? '' : 'text-muted'">{{ d.ranges.length ? d.ranges.join(', ') : t('detail.closed') }}</span>
+              </li>
             </ul>
           </div>
 
           <figure v-if="business.editorial_summary" class="text-sm text-ink-2 border-l-2 border-line pl-3">
             <blockquote>{{ business.editorial_summary }}</blockquote>
-            <figcaption class="text-xs text-muted mt-1">{{ t('detail.aboutGoogle') }}</figcaption>
+            <figcaption class="text-xs text-muted mt-1">{{ t('detail.aboutGoogle') }}<template v-if="googleLanguage"> · <span data-testid="google-language">{{ googleLanguage }}</span></template></figcaption>
           </figure>
 
           <!-- Google's policy: AI summaries are shown unaltered with their
                disclosure text and links. -->
           <div v-if="reviewSummary" class="rounded-xl bg-subtle p-4 space-y-2">
-            <p class="text-sm font-bold">{{ t('detail.reviewSummary') }}</p>
+            <p class="text-sm font-bold">{{ t('detail.reviewSummary') }}<span v-if="googleLanguage" class="font-normal text-xs text-muted"> · {{ googleLanguage }}</span></p>
             <p class="text-sm text-ink-2 leading-relaxed">{{ reviewSummary.text }}</p>
             <p v-if="reviewSummary.disclosure" class="text-xs text-muted">{{ reviewSummary.disclosure }}</p>
             <p class="flex flex-wrap gap-4 text-xs font-bold">

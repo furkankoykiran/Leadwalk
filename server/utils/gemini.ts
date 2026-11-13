@@ -1,8 +1,14 @@
 import type { Business, BusinessSignals, OpeningHours, ProcessResultBody, ProductIdea, ReviewSnippet, ReviewSummary } from '#shared/types/business'
+import { formatOpeningHours } from '#shared/utils/hours'
 import { parseJson } from '#shared/utils/opportunity'
 import type { ServerLocale } from './locale'
+import { LOCALE_INFO } from '#shared/locales'
 import { appError } from './locale'
 import { isRetryable, upstreamError, withRetry } from './upstream'
+
+// Languages with a hand-written prompt. Any other UI language uses the
+// English prompt and is told which language to write in.
+type PromptLanguage = 'en' | 'tr'
 
 // One generation normally takes 10–30 s. Without a ceiling a stalled request
 // left the "generating…" button spinning indefinitely.
@@ -54,7 +60,7 @@ const SIGNAL_LABELS: Record<keyof BusinessSignals, { en: string; tr: string }> =
   cash_only: { en: 'cash only', tr: 'yalnızca nakit' },
 }
 
-function describeSignals(signals: BusinessSignals, locale: ServerLocale): string | null {
+function describeSignals(signals: BusinessSignals, locale: PromptLanguage): string | null {
   const known = (Object.entries(signals) as Array<[keyof BusinessSignals, boolean]>)
     .map(([key, value]) => {
       const label = SIGNAL_LABELS[key]?.[locale]
@@ -65,7 +71,7 @@ function describeSignals(signals: BusinessSignals, locale: ServerLocale): string
   return known.length > 0 ? known.join('; ') : null
 }
 
-function formatReviews(reviews: ReviewSnippet[], locale: ServerLocale): string {
+function formatReviews(reviews: ReviewSnippet[], locale: PromptLanguage): string {
   if (reviews.length === 0) return locale === 'tr' ? '- Müşteri yorumları: yok' : '- Customer reviews: none'
   const lines = reviews.map(r => `  - (${r.rating}/5) ${r.text.replace(/\s+/g, ' ').trim()}`)
   const header = locale === 'tr'
@@ -74,7 +80,7 @@ function formatReviews(reviews: ReviewSnippet[], locale: ServerLocale): string {
   return `${header}\n${lines.join('\n')}`
 }
 
-function businessFacts(business: Business, locale: ServerLocale): string {
+function businessFacts(business: Business, locale: PromptLanguage): string {
   const tr = locale === 'tr'
   const unknown = tr ? 'bilinmiyor' : 'unknown'
   const none = tr ? 'yok' : 'none'
@@ -83,7 +89,7 @@ function businessFacts(business: Business, locale: ServerLocale): string {
   const summary = parseJson<ReviewSummary | null>(business.review_summary_json, null)
   const facts = [
     `- ${tr ? 'İsim' : 'Name'}: ${business.name}`,
-    `- ${tr ? 'Kategori' : 'Category'}: ${business.type_label ?? business.category ?? unknown}`,
+    `- ${tr ? 'Kategori' : 'Category'}: ${(business.google_locale === locale ? business.type_label : null) ?? business.category ?? unknown}`,
     `- ${tr ? 'Adres' : 'Address'}: ${business.address ?? unknown}`,
     `- ${tr ? 'Telefon' : 'Phone'}: ${business.phone ?? none}`,
     `- ${tr ? 'Mevcut website' : 'Current website'}: ${business.website_url ?? none}`,
@@ -91,7 +97,14 @@ function businessFacts(business: Business, locale: ServerLocale): string {
   ]
   if (business.price_level) facts.push(`- ${tr ? 'Fiyat seviyesi' : 'Price level'}: ${business.price_level.replace('PRICE_LEVEL_', '').toLowerCase()}`)
   if (business.google_status === 'FUTURE_OPENING') facts.push(tr ? '- Durum: henüz açılmadı (yakında açılıyor)' : '- Status: not open yet (opening soon)')
-  if (hours?.weekday_descriptions.length) facts.push(`- ${tr ? 'Çalışma saatleri' : 'Opening hours'}: ${hours.weekday_descriptions.join('; ')}`)
+  const formatted = formatOpeningHours(hours, LOCALE_INFO[locale].intl)
+  if (formatted) {
+    const closed = tr ? 'kapalı' : 'closed'
+    const text = formatted.allDay
+      ? (tr ? '7/24 açık' : 'open 24/7')
+      : formatted.days.map(d => `${d.name}: ${d.ranges.join(', ') || closed}`).join('; ')
+    facts.push(`- ${tr ? 'Çalışma saatleri' : 'Opening hours'}: ${text}`)
+  }
   if (signals) facts.push(`- ${tr ? 'Google\'daki hizmet bilgileri' : 'Service details on Google'}: ${signals}`)
   if (business.editorial_summary) facts.push(`- ${tr ? 'Google açıklaması' : 'Google description'}: ${business.editorial_summary}`)
   if (summary) facts.push(`- ${tr ? 'Google\'ın yorum özeti' : 'Google review summary'}: ${summary.text}`)
@@ -138,8 +151,8 @@ KESİNLİKLE ÖNERME: e-ticaret/sepet sistemi; karmaşık muhasebe, ERP veya fin
 En az bir fikir needs_cms=true, en az bir fikir needs_cms=false olsun — ama işletmenin gerçek ihtiyacına göre karar ver. Fikirlerden en az biri işletmenin kategorisine özel ve gerçekten anlamlı olmalı.`
 }
 
-function buildPromptEn(business: Business): string {
-  return `You are a field-sales assistant for an independent developer/freelancer who builds small custom software for local businesses. They are not a big company or agency — possibly one person. Write ALL output in ENGLISH.
+function buildPromptEn(business: Business, language = 'English'): string {
+  return `You are a field-sales assistant for an independent developer/freelancer who builds small custom software for local businesses. They are not a big company or agency — possibly one person. Write ALL output in ${language.toUpperCase()}.
 
 Business data:
 ${businessFacts(business, 'en')}
@@ -178,7 +191,7 @@ At least one idea should have needs_cms=true and at least one needs_cms=false �
 }
 
 export function buildPrompt(business: Business, locale: ServerLocale = 'tr'): string {
-  return locale === 'tr' ? buildPromptTr(business) : buildPromptEn(business)
+  return locale === 'tr' ? buildPromptTr(business) : buildPromptEn(business, LOCALE_INFO[locale].english)
 }
 
 interface GenerateContentResponse {

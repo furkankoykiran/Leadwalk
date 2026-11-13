@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FREE_MONTHLY_CAPS } from '#shared/types/usage'
-import type { Locale } from '~/utils/locale'
+import type { Locale } from '#shared/locales'
+import { LOCALE_INFO, LOCALES } from '#shared/locales'
 
 const route = useRoute()
 const { t, locale, isAuto, browserLocale, setLocale } = useI18n()
@@ -104,9 +105,8 @@ watch(() => route.fullPath, refreshUsage)
           <AppIcon name="language" class="w-4 h-4" />
           <span class="sr-only">{{ t('language.label') }}</span>
           <select v-model="languageChoice" class="bg-surface border border-line rounded-lg px-2 py-1.5 text-xs text-ink cursor-pointer" data-testid="language-select">
-            <option value="auto">{{ t('language.auto', { lang: t(`language.${browserLocale}`) }) }}</option>
-            <option value="en">{{ t('language.en') }}</option>
-            <option value="tr">{{ t('language.tr') }}</option>
+            <option value="auto">{{ t('language.auto', { lang: LOCALE_INFO[browserLocale].native }) }}</option>
+            <option v-for="code in LOCALES" :key="code" :value="code">{{ LOCALE_INFO[code].native }}</option>
           </select>
         </label>
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../app/i18n/en'
 import { tr } from '../app/i18n/tr'
-import { detectLocale, translate } from '../app/utils/locale'
+import { translate } from '../app/utils/locale'
+import { detectLocale, LOCALES } from '../shared/locales'
 
 function keys(node: unknown, prefix = ''): string[] {
   if (typeof node !== 'object' || node === null) return [prefix]
@@ -12,7 +13,14 @@ function placeholders(text: string): string[] {
   return [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]!).sort()
 }
 
+// Every language in shared/locales.ts must have a dictionary here.
+const DICTIONARIES = { en, tr } satisfies Record<(typeof LOCALES)[number], unknown>
+
 describe('dictionaries', () => {
+  it('exist for every supported locale', () => {
+    expect(Object.keys(DICTIONARIES).sort()).toEqual([...LOCALES].sort())
+  })
+
   it('Turkish and English have exactly the same keys', () => {
     expect(keys(tr).sort()).toEqual(keys(en).sort())
   })

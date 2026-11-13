@@ -1,20 +1,17 @@
 import type { H3Event } from 'h3'
+import type { Locale } from '#shared/locales'
+import { detectLocale, isLocale } from '#shared/locales'
 
-export type ServerLocale = 'en' | 'tr'
+export type ServerLocale = Locale
 
 /** UI language sent by the client (x-locale), else the browser's
- * Accept-Language, else English. */
+ * Accept-Language, else the default language. */
 export function getLocale(event: H3Event): ServerLocale {
   // Plain navigations (CSV download) can't set headers, so ?locale= works too.
   const explicit = getHeader(event, 'x-locale') ?? getQuery(event).locale
-  if (explicit === 'tr' || explicit === 'en') return explicit
+  if (isLocale(explicit)) return explicit
   const accept = getHeader(event, 'accept-language') ?? ''
-  for (const part of accept.split(',')) {
-    const base = part.trim().toLowerCase().split(/[-;]/)[0]
-    if (base === 'tr') return 'tr'
-    if (base === 'en') return 'en'
-  }
-  return 'en'
+  return detectLocale(accept.split(',').map(part => part.trim()))
 }
 
 /** The browser's IANA time zone (x-timezone) when it is one Intl knows. */
@@ -52,7 +49,7 @@ const MESSAGES = {
   geminiEmpty: { en: 'Gemini returned an empty answer, try again.', tr: 'Gemini boş yanıt döndürdü, tekrar dene.' },
   geminiBadJson: { en: 'Gemini returned invalid JSON, try again.', tr: 'Gemini yanıtı geçerli JSON değil, tekrar dene.' },
   geminiNoIdeas: { en: 'Gemini returned no ideas, try again.', tr: 'Gemini fikir listesi döndürmedi, tekrar dene.' },
-} as const
+} as const satisfies Record<string, Record<Locale, string>>
 
 export type MessageKey = keyof typeof MESSAGES
 

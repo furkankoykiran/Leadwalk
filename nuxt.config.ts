@@ -22,8 +22,6 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: BRAND.name,
-      // Pages that set their own title render as "<page> · Brand".
-      titleTemplate: title => (title ? `${title} · ${BRAND.name}` : BRAND.name),
       meta: [
         { name: 'theme-color', content: '#fbf8f4', media: '(prefers-color-scheme: light)' },
         { name: 'theme-color', content: '#141210', media: '(prefers-color-scheme: dark)' },

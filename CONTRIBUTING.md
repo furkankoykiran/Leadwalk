@@ -1,8 +1,7 @@
 # Contributing to Leadwalk
 
-Thanks for considering a contribution. This project is early and is being built
-out into something maintainable. That means there is a lot of low-hanging fruit,
-and also that some structure is still in flux.
+Thanks for considering a contribution. Leadwalk is young, so there is plenty of
+useful work, and some structure is still settling.
 
 ## Getting set up
 
@@ -31,22 +30,25 @@ Two things worth knowing before you hit them:
 and typecheck depend on — if either tool complains about missing generated
 files, re-run it.
 
-You do **not** need API keys to run the test suite, lint, or typecheck. You only
-need them to exercise discovery and generation against the live Google and
-Gemini APIs.
+You do **not** need API keys to run lint, typecheck, unit tests or the offline
+E2E suite. You only need them for discovery and generation against the live
+Google and Gemini APIs (and for the map tests, which skip themselves without a
+browser key).
 
 ## Before you open a pull request
 
-Run all four gates. CI runs exactly these, on Node 22 and 24:
+Run the gates. CI runs these on Node 22 and 24, plus the offline E2E suite:
 
 ```bash
 npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e:offline   # first time: npx playwright install chromium
 ```
 
-`npm run lint:fix` fixes most style violations automatically.
+`npm run lint:fix` fixes most style violations automatically. If you changed
+the UI, `npm run docs:screenshots` refreshes the README screenshots.
 
 ## Workflow
 
@@ -72,17 +74,51 @@ Types in use: `feat`, `fix`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`.
 
 Explain **why** in the body, not just what — the diff already says what.
 
+## Translations
+
+The app speaks English and Turkish; English is the source of truth. Only the
+README is translated (`README.<code>.md`, e.g. `README.tr.md`); the other docs
+stay in English.
+
+- **UI strings** live in `app/i18n/<code>.ts`. Every dictionary must have
+  exactly the same keys and `{placeholders}` as `en.ts` — a unit test enforces this.
+- **README**: when you change `README.md`, update its translations in the same
+  pull request, or say in the PR that a follow-up is needed. Screenshots are
+  generated per language by `npm run docs:screenshots` into
+  `docs/screenshots/<code>/`; never edit them by hand.
+
+### Adding a language
+
+Every supported language is listed once, in `shared/locales.ts`; everything
+locale-specific is typed against that list, so the compiler shows you what is
+missing.
+
+1. Add the code and its names to `LOCALES` and `LOCALE_INFO` in `shared/locales.ts`.
+2. Copy `app/i18n/en.ts` to `app/i18n/<code>.ts`, translate it, and register it
+   in `DICTIONARIES` in `app/composables/useI18n.ts` and in `test/i18n.test.ts`.
+3. Run `npm run typecheck` and fill in what it reports: category labels
+   (`app/utils/category.ts`) and server error messages (`server/utils/locale.ts`).
+4. AI output works without further changes — Gemini gets the English prompt
+   and is told to write in the new language. Add a native prompt in
+   `server/utils/gemini.ts` only if the output quality needs it.
+5. Run `npm run docs:screenshots`, then add `README.<code>.md` (start from
+   `README.tr.md`: same layout, its own `docs/screenshots/<code>/` paths) and
+   link it from the language line at the top of every README.
+6. Run the gates. The browser picks the new language automatically for users
+   whose browser prefers it.
+
 ## What makes a good contribution here
 
 Particularly welcome, roughly in order of usefulness:
 
-1. **Internationalisation.** The UI and the AI prompts are hardcoded Turkish.
-   Extracting strings and making the prompts locale-aware is the single biggest
-   unlock for other contributors.
-2. **Tests for the untested parts.** The Places and Gemini clients call out over
-   the network through Nuxt's `$fetch` and currently have no coverage. They need
-   a mocking layer before they can be tested honestly.
-3. **Dependency remediation.** `npm audit` reports advisories in transitive
+1. **Tests for the network clients.** The Places and Gemini clients call out
+   through Nuxt's `$fetch`; the pure mapping is unit-tested, the calls are
+   covered only by the `@live` E2E tests. A mocking layer would let them be
+   tested offline.
+2. **Map markers.** Move from the deprecated `google.maps.Marker` to
+   `AdvancedMarkerElement` (needs a Map ID, configurable via `.env`).
+3. **Pipeline views.** A kanban board and CSV import (matched on `place_id`).
+4. **Dependency remediation.** `npm audit` reports advisories in transitive
    dependencies. Fixes that need a major-version bump should come as their own
    reviewed PR rather than riding along with unrelated work.
 
@@ -95,14 +131,16 @@ Particularly welcome, roughly in order of usefulness:
 - **Don't alter `LICENSE` or the notices in `NOTICE`.** They are load-bearing
   legally, and Apache-2.0 (section 4) requires them to be retained.
 - **Watch the cost surface.** Discovery and generation are the two operations
-  that spend money. Changes that could multiply API calls need to say so
-  explicitly in the PR description.
+  that spend money. Changes that could multiply API calls — or add a field that
+  moves Places requests into a more expensive tier — must say so explicitly in
+  the PR description.
+- **Don't use the Leadwalk name or logo for forks** (see [brand/BRAND.md](brand/BRAND.md)).
 
 ## Code style
 
 ESLint is the arbiter; there is no separate formatter. Match the surrounding
-code — it favours small pure helpers in `app/utils/` and `server/utils/`, with
-comments explaining *why* rather than restating the code.
+code — it favours small pure helpers in `app/utils/`, `server/utils/` and
+`shared/utils/`, with comments explaining *why* rather than restating the code.
 
 ## Reporting bugs
 
@@ -116,5 +154,5 @@ Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Licensing of contributions
 
-Leadwalk is licensed under Apache-2.0. By contributing you agree that your contributions
-are licensed under the same terms.
+Leadwalk is licensed under Apache-2.0. By contributing you agree that your
+contributions are licensed under the same terms.

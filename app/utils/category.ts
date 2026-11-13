@@ -2,14 +2,14 @@
 // https://developers.google.com/maps/documentation/places/web-service/place-types
 // Icon names correspond to AppIcon.vue — grouped into broad visual buckets
 // rather than one icon per exact Google type.
-export type CategoryIconName = 'food' | 'lodging' | 'venue' | 'shopping' | 'health' | 'briefcase' | 'wrench' | 'building'
-export type CategoryLocale = 'en' | 'tr'
+import type { Locale } from '#shared/locales'
 
-interface CategoryMeta {
-  en: string
-  tr: string
-  icon: CategoryIconName
-}
+export type CategoryIconName = 'food' | 'lodging' | 'venue' | 'shopping' | 'health' | 'briefcase' | 'wrench' | 'building'
+
+// One label per language in shared/locales.ts — a missing one is a type error.
+type CategoryMeta = Record<Locale, string> & { icon: CategoryIconName }
+
+const OTHER: Record<Locale, string> = { en: 'Other', tr: 'Diğer' }
 
 // Offered in the discovery dropdown — every key must be a valid
 // `includedTypes` value for Nearby Search (an invalid one fails the search).
@@ -140,6 +140,12 @@ function metaFor(category: string): CategoryMeta | undefined {
   return CATEGORY_META[category] ?? DISPLAY_ONLY_META[category]
 }
 
+/** Label for a stored business: Google's own label is only trusted when it
+ * is in the UI language (it is stored in the language of discovery). */
+export function businessCategory(b: { category: string | null; type_label: string | null; google_locale: string | null }, locale: Locale): string {
+  return categoryLabel(b.category, locale, b.google_locale === locale ? b.type_label : null)
+}
+
 function humanize(raw: string): string {
   return raw.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
@@ -149,8 +155,8 @@ function humanize(raw: string): string {
  * localised label captured at discovery (`googleLabel`), then to a
  * humanised type string — never the raw snake_case value.
  */
-export function categoryLabel(category: string | null, locale: CategoryLocale = 'tr', googleLabel?: string | null): string {
-  if (!category) return googleLabel || (locale === 'tr' ? 'Diğer' : 'Other')
+export function categoryLabel(category: string | null, locale: Locale = 'tr', googleLabel?: string | null): string {
+  if (!category) return googleLabel || OTHER[locale]
   return metaFor(category)?.[locale] ?? googleLabel ?? humanize(category)
 }
 
@@ -162,7 +168,7 @@ export function categoryIconName(category: string | null): CategoryIconName {
 /** Curated subset of Google Place Types (New) offered in the discovery
  * category dropdown, deduplicated by label (hair_care / hair_salon) and
  * sorted with the locale's collation. */
-export function categoryOptionsList(locale: CategoryLocale = 'tr'): Array<{ value: string; label: string }> {
+export function categoryOptionsList(locale: Locale = 'tr'): Array<{ value: string; label: string }> {
   const seenLabels = new Set<string>()
   const options: Array<{ value: string; label: string }> = []
   for (const [value, meta] of Object.entries(CATEGORY_META)) {

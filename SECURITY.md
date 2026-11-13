@@ -33,8 +33,8 @@ would be vulnerabilities in a SaaS are deliberate here:
 - **All data lives in one unencrypted SQLite file** on the machine running the
   app (`data/leads.db` by default; `data/prospectforge.db` is still used if it exists).
 - **The app enforces no spending cap.** Discovery and generation call paid
-  Google APIs. Quota limits must be set in the Google Cloud console; see the
-  cost warning in the [README](README.md#cost-and-billing-warning).
+  Google APIs. Quota limits must be set in the Google Cloud console; see
+  [Google data, quotas and cost](README.md#google-data-quotas-and-cost).
 
 **Do not expose an instance to the public internet as-is.** If you intend to
 deploy it somewhere reachable, authentication, transport security and rate
@@ -42,8 +42,10 @@ limiting are yours to add.
 
 Reports that amount to "there is no login screen" or "the SQLite file is
 readable" are already documented above and are not treated as vulnerabilities.
-Reports about the app leaking keys, executing untrusted input, or being
-exploitable by a malicious API response very much are.
+Reports about the app leaking keys, executing untrusted input (for example
+business names or reviews from Google being rendered as HTML, or spreadsheet
+formulas in the CSV export), or being exploitable by a malicious API response
+very much are.
 
 ## API keys
 
@@ -71,6 +73,7 @@ compromised even if the commit was deleted seconds later.
 
 ## Dependencies
 
-`npm audit` currently reports advisories in transitive dependencies; these are
-tracked as a known issue in the [README](README.md#known-issues) rather than
-silently ignored. Dependabot opens update pull requests weekly.
+`npm audit` currently reports advisories in transitive dependencies; they are
+tracked rather than silently ignored, and fixes that need major-version bumps
+come as their own pull requests. Dependabot opens update pull requests weekly.
+

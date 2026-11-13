@@ -13,6 +13,7 @@ test.describe('Lead detail', () => {
     await expect(facts).toContainText('Kart geçerli')
     await expect(facts).toContainText('Rezervasyon alıyor: hayır')
     await expect(facts).toContainText('Pazartesi: 09:00–21:00')
+    await expect(facts).toContainText('Pazar: Kapalı')
     await expect(facts).toContainText('Randevu almak zor ama çok iyi.')
 
     await expect(page.getByRole('link', { name: 'Ara' })).toHaveAttribute('href', 'tel:+90 312 000 00 00')

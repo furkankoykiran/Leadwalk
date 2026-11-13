@@ -76,6 +76,8 @@ export interface DiscoveredBusiness {
   category: string | null
   /** Google's localised label for the primary type (language of discovery). */
   type_label: string | null
+  /** Language Google's texts (type label, hour lines, address) came back in. */
+  google_locale: string | null
   types_json: string | null
   address: string | null
   district: string | null

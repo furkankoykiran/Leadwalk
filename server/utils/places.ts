@@ -137,5 +137,5 @@ export async function nearbySearch(
     throw upstreamError('Google Places', error, locale)
   }
 
-  return (res.places ?? []).filter(isProspect).map(toDiscoveredBusiness)
+  return (res.places ?? []).filter(isProspect).map(p => ({ ...toDiscoveredBusiness(p), google_locale: locale }))
 }

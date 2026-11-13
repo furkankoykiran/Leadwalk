@@ -1,16 +1,4 @@
-export type Locale = 'en' | 'tr'
-export const LOCALES: readonly Locale[] = ['en', 'tr']
-
-/** Picks the UI language from the browser's preferred languages, in order:
- * the first tr-* or en-* preference wins; anything else falls back to English. */
-export function detectLocale(languages: readonly string[]): Locale {
-  for (const lang of languages) {
-    const base = lang.toLowerCase().split('-')[0]
-    if (base === 'tr') return 'tr'
-    if (base === 'en') return 'en'
-  }
-  return 'en'
-}
+import type { Locale } from '#shared/locales'
 
 type Params = Record<string, string | number>
 

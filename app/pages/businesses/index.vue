@@ -48,7 +48,7 @@ onMounted(load)
 const leads = computed(() => businesses.value.map(b => toLeadView(b)))
 
 function categoryText(b: Business) {
-  return categoryLabel(b.category, locale.value, b.type_label)
+  return businessCategory(b, locale.value)
 }
 
 const categoryOptions = computed(() => {

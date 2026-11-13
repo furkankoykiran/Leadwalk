@@ -171,6 +171,7 @@ export function toDiscoveredBusiness(p: PlaceResult): DiscoveredBusiness {
     name: p.displayName?.text ?? p.id,
     category: p.primaryType ?? null,
     type_label: p.primaryTypeDisplayName?.text ?? null,
+    google_locale: null,
     types_json: p.types?.length ? JSON.stringify(p.types) : null,
     address: p.formattedAddress ?? null,
     district: districtOf(p.addressComponents),

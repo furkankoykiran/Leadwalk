@@ -35,6 +35,7 @@ const ADDED_COLUMNS: Array<[string, string]> = [
   ['reviews_json', 'TEXT'],
   ['ideas_json', 'TEXT'],
   ['type_label', 'TEXT'],
+  ['google_locale', 'TEXT'],
   ['types_json', 'TEXT'],
   ['district', 'TEXT'],
   ['international_phone', 'TEXT'],
@@ -176,7 +177,7 @@ function logActivity(
 // ---------------------------------------------------------------------------
 
 const GOOGLE_FIELDS = [
-  'name', 'category', 'type_label', 'types_json', 'address', 'district', 'phone', 'international_phone',
+  'name', 'category', 'type_label', 'google_locale', 'types_json', 'address', 'district', 'phone', 'international_phone',
   'website_url', 'maps_uri', 'rating', 'review_count', 'price_level', 'google_status', 'lat', 'lng',
   'utc_offset_minutes', 'opening_hours_json', 'signals_json', 'editorial_summary', 'review_summary_json', 'reviews_json',
 ] as const

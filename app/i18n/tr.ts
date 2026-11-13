@@ -38,8 +38,6 @@ export const tr: Messages = {
   language: {
     label: 'Dil',
     auto: 'Otomatik ({lang})',
-    en: 'English',
-    tr: 'Türkçe',
   },
   clearAll: {
     button: 'Tüm verileri sil',
@@ -171,6 +169,8 @@ export const tr: Messages = {
     generatedIn: '{lang} yazıldı',
     googleKnows: 'Google ne biliyor',
     hours: 'Çalışma saatleri',
+    closed: 'Kapalı',
+    open24: '24 saat açık',
     priceLevel: 'Fiyat seviyesi',
     reviews: 'Yorumlar',
     reviewSummary: 'Yorum özeti',

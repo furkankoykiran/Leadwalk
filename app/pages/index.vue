@@ -58,7 +58,7 @@ const todayLabel = computed(() => new Intl.DateTimeFormat(intlLocale.value, { we
 const money = (value: number) => number(value, { maximumFractionDigits: 0 })
 
 function categoryText(b: Business) {
-  return categoryLabel(b.category, locale.value, b.type_label)
+  return businessCategory(b, locale.value)
 }
 </script>
 

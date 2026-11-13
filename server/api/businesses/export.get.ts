@@ -25,7 +25,7 @@ export default defineEventHandler((event) => {
   const lines = [HEADERS[locale].join(',')]
   for (const b of rows) {
     lines.push([
-      b.name, b.type_label ?? b.category, b.status, opportunityScore(b).score, b.international_phone ?? b.phone,
+      b.name, (b.google_locale === locale ? b.type_label : null) ?? b.category, b.status, opportunityScore(b).score, b.international_phone ?? b.phone,
       b.website_url, b.address, b.district, b.rating, b.review_count, b.follow_up_at, b.deal_value,
       b.maps_uri, b.discovered_at,
     ].map(cell).join(','))

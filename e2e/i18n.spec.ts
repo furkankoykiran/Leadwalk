@@ -29,6 +29,24 @@ test.describe('language and time zone follow the browser @i18n', () => {
     }
   })
 
+  test("Google's localised texts never leak into the other UI language", async ({ page }, info) => {
+    // The seed was "discovered" in Turkish: Turkish weekday lines and type labels are stored.
+    const tr = isTr(info.project.use.locale)
+    await page.goto('/businesses')
+    await page.getByTestId('leads-list').getByRole('link', { name: 'Usta Berber Salonu' }).click()
+    const hours = page.getByTestId('opening-hours')
+    if (tr) {
+      await expect(hours).toContainText('Pazartesi: 09:00–21:00')
+      await expect(hours).toContainText('Pazar: Kapalı')
+      await expect(page.getByText('Berber', { exact: true }).first()).toBeVisible()
+    } else {
+      await expect(hours).toContainText('Monday: 9:00')
+      await expect(hours).toContainText('Sunday: Closed')
+      await expect(hours).not.toContainText('Pazartesi')
+      await expect(page.getByText('Barber', { exact: true }).first()).toBeVisible()
+    }
+  })
+
   test('a manual language choice overrides the browser and survives a reload', async ({ page }, info) => {
     const tr = isTr(info.project.use.locale)
     await page.goto('/')

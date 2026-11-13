@@ -12,6 +12,7 @@ function place(overrides: Partial<DiscoveredBusiness> & Pick<DiscoveredBusiness,
   return {
     category: null,
     type_label: null,
+    google_locale: 'tr',
     types_json: null,
     address: 'Kızılay, Çankaya/Ankara, Türkiye',
     district: 'Kızılay, Çankaya',

@@ -42,7 +42,7 @@ function infoContent(lead: LeadView): HTMLElement {
   name.textContent = b.name
   const meta = document.createElement('p')
   meta.style.cssText = 'font-size: 12px; color: #6b635b; margin: 0 0 8px;'
-  meta.textContent = `${categoryLabel(b.category, locale.value, b.type_label)} · ${t(`status.${b.status}`)} · ${t('score.label')} ${lead.score.score}`
+  meta.textContent = `${businessCategory(b, locale.value)} · ${t(`status.${b.status}`)} · ${t('score.label')} ${lead.score.score}`
   const link = document.createElement('a')
   link.href = `/businesses/${b.id}`
   link.style.cssText = 'font-size: 13px; color: #c2410c; font-weight: 700;'

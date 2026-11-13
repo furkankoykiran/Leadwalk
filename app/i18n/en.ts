@@ -40,8 +40,6 @@ export const en = {
   language: {
     label: 'Language',
     auto: 'Auto ({lang})',
-    en: 'English',
-    tr: 'Türkçe',
   },
   clearAll: {
     button: 'Delete all data',
@@ -173,6 +171,8 @@ export const en = {
     generatedIn: 'Written in {lang}',
     googleKnows: 'What Google knows',
     hours: 'Opening hours',
+    closed: 'Closed',
+    open24: 'Open 24 hours',
     priceLevel: 'Price level',
     reviews: 'Reviews',
     reviewSummary: 'Review summary',

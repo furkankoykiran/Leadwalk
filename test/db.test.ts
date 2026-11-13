@@ -33,6 +33,7 @@ function discovered(overrides: Partial<DiscoveredBusiness> = {}): DiscoveredBusi
     name: 'Kahve Dünyası',
     category: 'cafe',
     type_label: 'Kafe',
+    google_locale: 'tr',
     types_json: null,
     address: 'Bir Sokak 1',
     district: 'Fatih',

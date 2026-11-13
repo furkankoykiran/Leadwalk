@@ -1,3 +1,5 @@
+import { LOCALE_INFO } from '#shared/locales'
+
 // All dates are stored as UTC ISO strings and rendered in the *browser's*
 // time zone (Intl's default), in the active UI language.
 
@@ -7,7 +9,7 @@ export function browserTimeZone(): string {
 
 export function useFormat() {
   const { locale } = useI18n()
-  const intlLocale = computed(() => (locale.value === 'tr' ? 'tr-TR' : 'en-US'))
+  const intlLocale = computed(() => LOCALE_INFO[locale.value].intl)
 
   function dateTime(iso: string | null | undefined): string {
     if (!iso) return ''
