@@ -1,4 +1,4 @@
-# Contributing to ProspectForge
+# Contributing to Leadwalk
 
 Thanks for considering a contribution. This project is early and is being built
 out into something maintainable. That means there is a lot of low-hanging fruit,
@@ -7,8 +7,8 @@ and also that some structure is still in flux.
 ## Getting set up
 
 ```bash
-git clone https://github.com/furkankoykiran/ProspectForge.git
-cd ProspectForge
+git clone https://github.com/furkankoykiran/Leadwalk.git
+cd Leadwalk
 npm install
 cp .env.example .env
 npm run dev
@@ -92,8 +92,8 @@ Particularly welcome, roughly in order of usefulness:
   believe a key has been exposed, follow [SECURITY.md](SECURITY.md).
 - **Don't weaken the verification gates** to make a change pass. If a rule is
   wrong, change the rule deliberately in its own commit and say why.
-- **Don't alter the copyright notices in `LICENSE`.** They are load-bearing
-  legally, and the MIT License requires them to be retained.
+- **Don't alter `LICENSE` or the notices in `NOTICE`.** They are load-bearing
+  legally, and Apache-2.0 (section 4) requires them to be retained.
 - **Watch the cost surface.** Discovery and generation are the two operations
   that spend money. Changes that could multiply API calls need to say so
   explicitly in the PR description.
@@ -116,5 +116,5 @@ Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Licensing of contributions
 
-ProspectForge is MIT licensed. By contributing you agree that your contributions
+Leadwalk is licensed under Apache-2.0. By contributing you agree that your contributions
 are licensed under the same terms.

@@ -17,3 +17,8 @@ coverage
 Thumbs.db
 .idea
 *.swp
+
+# Playwright
+e2e-report
+test-results
+playwright/.cache

@@ -2,14 +2,14 @@
 
 ## Supported versions
 
-ProspectForge is pre-1.0. Only the current `main` branch receives fixes.
+Leadwalk is pre-1.0. Only the current `main` branch receives fixes.
 
 ## Reporting a vulnerability
 
 **Do not open a public issue for a security problem.**
 
 Report privately through GitHub's
-[private vulnerability reporting](https://github.com/furkankoykiran/ProspectForge/security/advisories/new)
+[private vulnerability reporting](https://github.com/furkankoykiran/Leadwalk/security/advisories/new)
 for this repository. Please include:
 
 - what the issue is and roughly how severe you think it is,
@@ -23,7 +23,7 @@ publicly.
 
 ## Threat model — read this first
 
-ProspectForge is a **personal, single-user, fully local tool**, not a hosted
+Leadwalk is a **personal, single-user, fully local tool**, not a hosted
 service. Its security posture follows from that, and several properties that
 would be vulnerabilities in a SaaS are deliberate here:
 
@@ -31,7 +31,7 @@ would be vulnerabilities in a SaaS are deliberate here:
   running app can read and modify all of its data. It is meant to be run on
   `localhost`.
 - **All data lives in one unencrypted SQLite file** on the machine running the
-  app (`data/prospectforge.db` by default).
+  app (`data/leads.db` by default; `data/prospectforge.db` is still used if it exists).
 - **The app enforces no spending cap.** Discovery and generation call paid
   Google APIs. Quota limits must be set in the Google Cloud console; see the
   cost warning in the [README](README.md#cost-and-billing-warning).
@@ -47,7 +47,7 @@ exploitable by a malicious API response very much are.
 
 ## API keys
 
-ProspectForge uses three Google API keys. Handle them as follows:
+Leadwalk uses three Google API keys. Handle them as follows:
 
 - `GOOGLE_MAPS_API_KEY` and `GEMINI_API_KEY` are **server-side secrets**. They
   are read from the environment and must never reach the browser or the
