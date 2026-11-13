@@ -17,6 +17,9 @@ beforeAll(async () => {
 })
 
 afterAll(() => {
+  // Close first: Windows cannot delete the directory while the SQLite file
+  // (and its WAL/SHM side files) are still held open.
+  db.closeDb()
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -127,6 +130,18 @@ describe('saveProcessResult', () => {
     expect(business.processed_at).not.toBeNull()
     expect(JSON.parse(business.ideas_json!)).toEqual([idea])
   })
+
+  it('does not push a visited/won/lost business back to processed on regeneration', () => {
+    db.upsertBusinesses([discovered()])
+    const id = db.listBusinesses()[0]!.id
+    db.updateStatus(id, 'won')
+
+    db.saveProcessResult(id, { profile_md: 'P2', pitch_script_md: 'S2', ideas: [idea] })
+
+    const business = db.getBusiness(id)!
+    expect(business.status).toBe('won')
+    expect(business.profile_md).toBe('P2')
+  })
 })
 
 describe('isValidStatus', () => {
@@ -173,5 +188,11 @@ describe('daily usage', () => {
 
   it('reports today, in ISO date form', () => {
     expect(db.getTodayUsage().date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('uses the local calendar day rather than the UTC one', () => {
+    // 00:30 local on 14 Nov is still 13 Nov in UTC for any zone east of UTC.
+    const justAfterLocalMidnight = new Date(2026, 10, 14, 0, 30)
+    expect(db.todayString(justAfterLocalMidnight)).toBe('2026-11-14')
   })
 })

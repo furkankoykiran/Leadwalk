@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Business } from '#shared/types/business'
-import type { DailyUsage } from '#shared/types/usage'
 
 const route = useRoute()
 
@@ -15,13 +14,9 @@ const NAV_ITEMS = [
 const needsFullHeight = computed(() => route.path === '/map' || route.path === '/discover')
 const isFullWidthPage = needsFullHeight
 
-const usage = ref<DailyUsage | null>(null)
+const { usage, refreshUsage: loadUsage } = useUsage()
 const clearing = ref(false)
 const { confirmDialog } = useConfirm()
-
-async function loadUsage() {
-  usage.value = await $fetch<DailyUsage>('/api/usage')
-}
 
 async function clearAll() {
   const list = await $fetch<Business[]>('/api/businesses')

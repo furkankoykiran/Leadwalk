@@ -5,8 +5,10 @@ const props = defineProps<{ business: Business }>()
 const emit = defineEmits<{ processed: [business: Business]; statusChanged: [business: Business] }>()
 
 const { copiedKey, copy } = useClipboard()
+const { refreshUsage } = useUsage()
 const processing = ref(false)
-const errorMessage = ref<string | null>(null)
+const updatingStatus = ref(false)
+const errorText = ref<string | null>(null)
 
 const reviews = computed<ReviewSnippet[]>(() => {
   if (!props.business.reviews_json) return []
@@ -36,23 +38,32 @@ const sections = computed(() => {
 
 async function generate() {
   processing.value = true
-  errorMessage.value = null
+  errorText.value = null
   try {
     const updated = await $fetch<Business>(`/api/process/${props.business.id}`, { method: 'POST' })
     emit('processed', updated)
-  } catch {
-    errorMessage.value = 'Üretim başarısız oldu, tekrar dene.'
+  } catch (error) {
+    errorText.value = errorMessage(error, 'Üretim başarısız oldu, tekrar dene.')
   } finally {
     processing.value = false
+    refreshUsage()
   }
 }
 
 async function setStatus(status: BusinessStatus) {
-  const updated = await $fetch<Business>(`/api/businesses/${props.business.id}/status`, {
-    method: 'PATCH',
-    body: { status },
-  })
-  emit('statusChanged', updated)
+  updatingStatus.value = true
+  errorText.value = null
+  try {
+    const updated = await $fetch<Business>(`/api/businesses/${props.business.id}/status`, {
+      method: 'PATCH',
+      body: { status },
+    })
+    emit('statusChanged', updated)
+  } catch (error) {
+    errorText.value = errorMessage(error, 'Durum güncellenemedi, tekrar dene.')
+  } finally {
+    updatingStatus.value = false
+  }
 }
 </script>
 
@@ -146,7 +157,7 @@ async function setStatus(status: BusinessStatus) {
       <AppIcon name="sparkles" class="w-4 h-4" />
       {{ processing ? 'Üretiliyor…' : 'Profil + Pitch Üret' }}
     </button>
-    <p v-if="errorMessage" class="text-red-400 text-sm">{{ errorMessage }}</p>
+    <p v-if="errorText" class="text-red-400 text-sm">{{ errorText }}</p>
 
     <template v-if="ideas.length > 0">
       <section v-for="field in sections" :key="field.key" class="border border-zinc-800 rounded-2xl p-6 bg-zinc-900">
@@ -209,48 +220,51 @@ async function setStatus(status: BusinessStatus) {
         </div>
       </div>
 
-      <!-- Status funnel: one contextual step at a time instead of three
-           always-visible buttons that could jump the pipeline out of order. -->
-      <div class="border border-zinc-800 rounded-2xl p-5 bg-zinc-900">
+    </template>
+
+    <!-- Status funnel: one contextual step at a time instead of three
+         always-visible buttons that could jump the pipeline out of order.
+         Shown even before generation, so a business can be tracked on foot
+         without first spending a Gemini call on it. -->
+    <div class="border border-zinc-800 rounded-2xl p-5 bg-zinc-900" :class="{ 'opacity-60 pointer-events-none': updatingStatus }">
+      <button
+        v-if="business.status === 'discovered' || business.status === 'processed'"
+        type="button"
+        class="w-full py-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-medium text-sm hover:bg-cyan-500/20 transition cursor-pointer"
+        @click="setStatus('visited')"
+      >
+        Ziyaret Edildi Olarak İşaretle
+      </button>
+
+      <div v-else-if="business.status === 'visited'" class="flex gap-2">
         <button
-          v-if="business.status === 'discovered' || business.status === 'processed'"
           type="button"
-          class="w-full py-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-medium text-sm hover:bg-cyan-500/20 transition cursor-pointer"
+          class="flex-1 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium text-sm hover:bg-emerald-500/20 transition cursor-pointer"
+          @click="setStatus('won')"
+        >
+          Kazanıldı
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-medium text-sm hover:bg-red-500/20 transition cursor-pointer"
+          @click="setStatus('lost')"
+        >
+          Kaybedildi
+        </button>
+      </div>
+
+      <div v-else class="flex items-center justify-between flex-wrap gap-2">
+        <p class="text-sm" :class="business.status === 'won' ? 'text-emerald-400' : 'text-red-400'">
+          Bu işletme {{ business.status === 'won' ? 'kazanıldı' : 'kaybedildi' }} olarak işaretlendi.
+        </p>
+        <button
+          type="button"
+          class="text-xs px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 transition text-zinc-400 cursor-pointer"
           @click="setStatus('visited')"
         >
-          Ziyaret Edildi Olarak İşaretle
+          Durumu Sıfırla
         </button>
-
-        <div v-else-if="business.status === 'visited'" class="flex gap-2">
-          <button
-            type="button"
-            class="flex-1 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium text-sm hover:bg-emerald-500/20 transition cursor-pointer"
-            @click="setStatus('won')"
-          >
-            Kazanıldı
-          </button>
-          <button
-            type="button"
-            class="flex-1 py-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-medium text-sm hover:bg-red-500/20 transition cursor-pointer"
-            @click="setStatus('lost')"
-          >
-            Kaybedildi
-          </button>
-        </div>
-
-        <div v-else class="flex items-center justify-between flex-wrap gap-2">
-          <p class="text-sm" :class="business.status === 'won' ? 'text-emerald-400' : 'text-red-400'">
-            Bu işletme {{ business.status === 'won' ? 'kazanıldı' : 'kaybedildi' }} olarak işaretlendi.
-          </p>
-          <button
-            type="button"
-            class="text-xs px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 transition text-zinc-400 cursor-pointer"
-            @click="setStatus('visited')"
-          >
-            Durumu Sıfırla
-          </button>
-        </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>

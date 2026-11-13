@@ -68,6 +68,13 @@ export function getDb(): Database.Database {
   return db
 }
 
+/** Closes the connection (tests use this before deleting their temp
+ * directory — Windows refuses to delete a file that is still open). */
+export function closeDb(): void {
+  db?.close()
+  db = null
+}
+
 function ensureColumn(database: Database.Database, name: string, type: string): void {
   const columns = database.prepare('PRAGMA table_info(businesses)').all() as Array<{ name: string }>
   if (!columns.some(c => c.name === name)) {
@@ -126,10 +133,13 @@ export function getBusiness(id: number): Business | undefined {
   return getDb().prepare('SELECT * FROM businesses WHERE id = ?').get(id) as Business | undefined
 }
 
+/** Stores a generation result. Only advances the status from "discovered"
+ * to "processed" — regenerating ideas for a business already marked visited,
+ * won or lost must not silently push it back down the funnel. */
 export function saveProcessResult(id: number, result: ProcessResultBody): void {
   getDb().prepare(`
     UPDATE businesses SET
-      status = 'processed',
+      status = CASE WHEN status = 'discovered' THEN 'processed' ELSE status END,
       profile_md = @profile_md,
       pitch_script_md = @pitch_script_md,
       ideas_json = @ideas_json,
@@ -164,8 +174,14 @@ export function deleteAllBusinesses(): void {
 // Daily usage (self-monitoring for the two billable actions: discover + process)
 // ---------------------------------------------------------------------------
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10)
+/** Today's date on the machine's local clock (YYYY-MM-DD). toISOString()
+ * would use UTC, so in Turkey (UTC+3) the "today" counter rolled over at
+ * 03:00 and searches made after midnight landed on the previous day. */
+export function todayString(now: Date = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function incrementUsage(action: 'discover' | 'process'): void {

@@ -1,4 +1,14 @@
-import type { Business, ProcessResultBody, ProductIdea } from '#shared/types/business'
+import type { Business, ProcessResultBody, ProductIdea, ReviewSnippet } from '#shared/types/business'
+import { isRetryable, upstreamError, withRetry } from './upstream'
+
+// One generation normally takes 10–30 s. Without a ceiling a stalled request
+// left the "Üretiliyor…" button spinning indefinitely.
+const GEMINI_TIMEOUT_MS = 45_000
+
+// Tried in order. The lite model is only used when the primary one is
+// overloaded or rate-limited (both are on the free tier); in a live test
+// gemini-flash-latest returned 503 for minutes while the lite one answered.
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest'] as const
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -23,7 +33,24 @@ const RESPONSE_SCHEMA = {
   required: ['profile_md', 'pitch_script_md', 'ideas'],
 }
 
-function buildPrompt(business: Business): string {
+function parseReviews(reviewsJson: string | null): ReviewSnippet[] {
+  if (!reviewsJson) return []
+  try {
+    const parsed = JSON.parse(reviewsJson)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function formatReviews(business: Business): string {
+  const reviews = parseReviews(business.reviews_json)
+  if (reviews.length === 0) return '- Müşteri yorumları: yok'
+  const lines = reviews.map(r => `  - (${r.rating}/5) ${r.text.replace(/\s+/g, ' ').trim()}`)
+  return `- Müşteri yorumlarından örnekler (işletmenin güçlü/zayıf yönlerini ve ihtiyaçlarını anlamak için kullan, aynen alıntılama):\n${lines.join('\n')}`
+}
+
+export function buildPrompt(business: Business): string {
   return `Sen, yerel işletmelere özel dijital çözümler geliştiren bağımsız bir yazılımcı/serbest çalışan için saha satış asistanısın. Bu yazılımcı büyük bir şirket ya da ekip değil — tek başına çalışan biri olabilir. Aşağıdaki işletme için TÜM çıktıyı TÜRKÇE üret.
 
 İşletme verisi:
@@ -33,6 +60,7 @@ function buildPrompt(business: Business): string {
 - Telefon: ${business.phone ?? 'yok'}
 - Mevcut website: ${business.website_url ?? 'yok'}
 - Google puanı: ${business.rating ?? 'yok'} (${business.review_count ?? 0} yorum)
+${formatReviews(business)}
 
 ÖNEMLİ — pitch_script_md için kesin kural:
 - Var olmayan bir şirket/ekip/marka ismi UYDURMA (örn. "X şirketinden geliyorum", "Y ekibindenim" gibi ifadeler YASAK).
@@ -69,14 +97,15 @@ Bunun yerine şuna benzer basit, uygulanabilir fikirlere odaklan: QR menü, rand
 En az bir fikir needs_cms=true olmalı, en az bir fikir needs_cms=false olmalı — ama bunu zorla dağıtma, işletmenin gerçek ihtiyacına göre karar ver. Fikirlerden en az biri işletmenin kategorisine (${business.category ?? 'bilinmiyor'}) özel, gerçekten anlamlı olmalı — genel geçer önerilerden kaçın.`
 }
 
-export async function processBusinessWithGemini(business: Business, apiKey: string): Promise<ProcessResultBody> {
-  const prompt = buildPrompt(business)
+interface GenerateContentResponse {
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+}
 
-  const response = await $fetch<{
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
-  }>('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+function generateContent(model: string, prompt: string, apiKey: string): Promise<GenerateContentResponse> {
+  return $fetch<GenerateContentResponse>(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': apiKey },
+    timeout: GEMINI_TIMEOUT_MS,
     body: {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
@@ -85,21 +114,47 @@ export async function processBusinessWithGemini(business: Business, apiKey: stri
       },
     },
   })
+}
+
+function invalidResponse(message: string): Error {
+  return createError({ statusCode: 502, statusMessage: 'Invalid Gemini response', message })
+}
+
+export async function processBusinessWithGemini(business: Business, apiKey: string): Promise<ProcessResultBody> {
+  const prompt = buildPrompt(business)
+
+  let response: GenerateContentResponse | undefined
+  let lastError: unknown
+  for (const model of GEMINI_MODELS) {
+    try {
+      // Gemini regularly answers 503 ("model overloaded") or 429 for a while;
+      // a spaced retry rides out short blips, and the next model in the list
+      // covers longer outages of the primary one.
+      response = await withRetry(() => generateContent(model, prompt, apiKey), [3000])
+      break
+    } catch (error) {
+      lastError = error
+      if (!isRetryable(error)) break
+    }
+  }
+  if (!response) {
+    throw upstreamError('Gemini', lastError)
+  }
 
   const text = response.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) {
-    throw new Error('Gemini boş yanıt döndürdü')
+    throw invalidResponse('Gemini boş yanıt döndürdü, tekrar dene.')
   }
 
   let parsed: ProcessResultBody
   try {
     parsed = JSON.parse(text)
   } catch {
-    throw new Error('Gemini yanıtı geçerli JSON değil')
+    throw invalidResponse('Gemini yanıtı geçerli JSON değil, tekrar dene.')
   }
 
   if (!Array.isArray(parsed.ideas) || parsed.ideas.length === 0) {
-    throw new Error('Gemini fikir listesi döndürmedi')
+    throw invalidResponse('Gemini fikir listesi döndürmedi, tekrar dene.')
   }
 
   return {

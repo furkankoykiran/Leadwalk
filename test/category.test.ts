@@ -11,6 +11,13 @@ describe('categoryLabel', () => {
     expect(categoryLabel(null)).toBe('Diğer')
   })
 
+  it('localises common Google types that are display-only (not offered in discovery)', () => {
+    expect(categoryLabel('gift_shop')).toBe('Hediyelik Eşya')
+    expect(categoryLabel('yoga_studio')).toBe('Yoga Stüdyosu')
+    expect(categoryLabel('consultant')).toBe('Danışmanlık')
+    expect(categoryIconName('museum')).toBe('venue')
+  })
+
   it('humanises unmapped types instead of showing the raw snake_case string', () => {
     expect(categoryLabel('vegan_restaurant')).toBe('Vegan Restaurant')
     expect(categoryLabel('spa')).toBe('Spa')
@@ -55,6 +62,12 @@ describe('categoryOptionsList', () => {
     const labels = options.map(o => o.label)
     const expected = [...labels].sort((a, b) => a.localeCompare(b, 'tr'))
     expect(labels).toEqual(expected)
+  })
+
+  it('does not offer display-only types as discovery filters', () => {
+    const values = options.map(o => o.value)
+    expect(values).not.toContain('gift_shop')
+    expect(values).not.toContain('museum')
   })
 
   it('only offers values that resolve back to their own label', () => {

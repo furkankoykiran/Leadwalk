@@ -1,4 +1,5 @@
 import type { DiscoveredBusiness, ReviewSnippet } from '#shared/types/business'
+import { upstreamError, withRetry } from './upstream'
 
 const MAX_REVIEWS_STORED = 3
 
@@ -13,14 +14,34 @@ interface GeocodeResponse {
 }
 
 export async function geocodeAddress(address: string, apiKey: string): Promise<GeocodeResult> {
-  const res = await $fetch<GeocodeResponse>('https://maps.googleapis.com/maps/api/geocode/json', {
-    query: { address, key: apiKey },
-  })
-  const first = res.results[0]
-  if (res.status !== 'OK' || !first) {
-    throw new Error(`Adres bulunamadı: ${address}`)
+  let res: GeocodeResponse
+  try {
+    res = await withRetry(() => $fetch<GeocodeResponse>('https://maps.googleapis.com/maps/api/geocode/json', {
+      query: { address, key: apiKey },
+      timeout: 15_000,
+    }))
+  } catch (error) {
+    throw upstreamError('Google Geocoding', error)
   }
-  return first.geometry.location
+
+  // The Geocoding API reports most failures as HTTP 200 with a status field.
+  const first = res.results[0]
+  if (res.status === 'OK' && first) return first.geometry.location
+  if (res.status === 'ZERO_RESULTS' || (res.status === 'OK' && !first)) {
+    throw createError({ statusCode: 404, statusMessage: 'Address not found', message: `Adres bulunamadı: ${address}` })
+  }
+  if (res.status === 'REQUEST_DENIED') {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Geocoding request denied',
+      message: 'Google Geocoding isteği reddetti. Sunucu anahtarında Geocoding API etkin mi, kontrol et.',
+    })
+  }
+  throw createError({
+    statusCode: 502,
+    statusMessage: 'Geocoding failed',
+    message: `Adres çözümlenemedi (${res.status}). Biraz sonra tekrar dene.`,
+  })
 }
 
 // Non-commercial place types we never want cluttering discovery results
@@ -44,7 +65,13 @@ const DEFAULT_EXCLUDED_TYPES = [
 
 // Types Google returns as a place's primaryType but refuses as an
 // excludedTypes request value — filtered out locally after the fact instead.
-const POST_FILTER_EXCLUDED_TYPES = ['point_of_interest', 'toll_booth', 'establishment']
+// The rest are added here rather than to excludedTypes so an unsupported
+// value can never fail the whole search; live tests in central Ankara
+// returned all of them as "prospects".
+const POST_FILTER_EXCLUDED_TYPES = [
+  'point_of_interest', 'toll_booth', 'establishment',
+  'monument', 'historical_landmark', 'library', 'garden', 'academic_department',
+]
 
 interface SearchNearbyResponse {
   places?: Array<{
@@ -93,32 +120,21 @@ export async function nearbySearch(
     body.excludedTypes = DEFAULT_EXCLUDED_TYPES
   }
 
-  const res = await $fetch<SearchNearbyResponse>('https://places.googleapis.com/v1/places:searchNearby', {
-    method: 'POST',
-    headers: {
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': [
-        'places.id',
-        'places.displayName',
-        'places.primaryType',
-        'places.formattedAddress',
-        'places.nationalPhoneNumber',
-        'places.websiteUri',
-        'places.rating',
-        'places.userRatingCount',
-        'places.location',
-        'places.reviews',
-      ].join(','),
-    },
-    body,
-  })
+  let res: SearchNearbyResponse
+  try {
+    res = await withRetry(() => fetchNearby(body, apiKey))
+  } catch (error) {
+    throw upstreamError('Google Places', error)
+  }
 
   const filtered = (res.places ?? []).filter(p => !POST_FILTER_EXCLUDED_TYPES.includes(p.primaryType ?? ''))
 
   return filtered.map((p) => {
     const reviews: ReviewSnippet[] = (p.reviews ?? [])
-      .slice(0, MAX_REVIEWS_STORED)
+      // Filter before slicing, so empty reviews don't eat into the three
+      // slots that real ones could have filled.
       .filter(r => r.originalText?.text || r.text?.text)
+      .slice(0, MAX_REVIEWS_STORED)
       .map(r => ({
         author: r.authorAttribution?.displayName ?? 'Anonim',
         rating: r.rating ?? 0,
@@ -140,5 +156,28 @@ export async function nearbySearch(
       lng: p.location?.longitude ?? null,
       reviews_json: reviews.length > 0 ? JSON.stringify(reviews) : null,
     }
+  })
+}
+
+function fetchNearby(body: Record<string, unknown>, apiKey: string): Promise<SearchNearbyResponse> {
+  return $fetch<SearchNearbyResponse>('https://places.googleapis.com/v1/places:searchNearby', {
+    method: 'POST',
+    timeout: 20_000,
+    headers: {
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': [
+        'places.id',
+        'places.displayName',
+        'places.primaryType',
+        'places.formattedAddress',
+        'places.nationalPhoneNumber',
+        'places.websiteUri',
+        'places.rating',
+        'places.userRatingCount',
+        'places.location',
+        'places.reviews',
+      ].join(','),
+    },
+    body,
   })
 }

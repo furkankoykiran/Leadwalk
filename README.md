@@ -68,7 +68,7 @@ foot, business by business.
 | Database | [SQLite](https://sqlite.org) via [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3) — a single file, no separate server process |
 | Business discovery | [Google Places API (New)](https://developers.google.com/maps/documentation/places/web-service/op-overview) + [Geocoding API](https://developers.google.com/maps/documentation/geocoding) |
 | Map UI | [Maps JavaScript API](https://developers.google.com/maps/documentation/javascript) |
-| AI generation | [Gemini API](https://ai.google.dev/) (`gemini-flash-latest`, structured JSON output) |
+| AI generation | [Gemini API](https://ai.google.dev/) (`gemini-flash-latest`, structured JSON output; falls back to `gemini-flash-lite-latest` when the primary model is overloaded or rate-limited) |
 
 ---
 

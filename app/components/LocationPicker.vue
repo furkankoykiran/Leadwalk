@@ -73,6 +73,9 @@ async function initMap() {
     styles: DARK_MAP_STYLE,
     disableDefaultUI: true,
     zoomControl: true,
+    // Clicking a Google POI (a museum, a mall…) to drop the pin otherwise
+    // also pops Google's own info bubble over the map.
+    clickableIcons: false,
   })
   map.addListener('click', (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return

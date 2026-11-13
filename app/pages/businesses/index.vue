@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Business, BusinessStatus } from '#shared/types/business'
+import type { CategoryIconName } from '~/utils/category'
 
 const businesses = ref<Business[]>([])
 const statusFilter = ref<'all' | BusinessStatus>('all')
@@ -17,22 +18,30 @@ const statCounts = computed(() => {
   return counts
 })
 
+// Chips are grouped by the label the user sees, not the raw Google type:
+// several types share a label (hospital / general_hospital → "Hastane"), and
+// two identical "Hastane · 1" chips filtering different subsets was confusing.
 const categoryOptions = computed(() => {
-  const counts = new Map<string, number>()
+  const groups = new Map<string, { count: number; icon: CategoryIconName }>()
   for (const b of businesses.value) {
-    const key = b.category ?? '__other__'
-    counts.set(key, (counts.get(key) ?? 0) + 1)
+    const label = categoryLabel(b.category)
+    const group = groups.get(label)
+    if (group) group.count++
+    else groups.set(label, { count: 1, icon: categoryIconName(b.category) })
   }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([value, count]) => ({ value, count, label: categoryLabel(value === '__other__' ? null : value) }))
+  return [...groups.entries()]
+    .sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0], 'tr'))
+    .map(([label, { count, icon }]) => ({ value: label, label, count, icon }))
 })
 
 const filteredBusinesses = computed(() => {
+  // Turkish-aware lowercasing: plain toLowerCase() turns "İ" into "i̇"
+  // (i + combining dot), so searching "istiklal" would miss "İstiklal".
+  const query = searchQuery.value.trim().toLocaleLowerCase('tr')
   return businesses.value.filter((b) => {
     if (statusFilter.value !== 'all' && b.status !== statusFilter.value) return false
-    if (categoryFilter.value !== 'all' && (b.category ?? '__other__') !== categoryFilter.value) return false
-    if (searchQuery.value && !b.name.toLowerCase().includes(searchQuery.value.toLowerCase())) return false
+    if (categoryFilter.value !== 'all' && categoryLabel(b.category) !== categoryFilter.value) return false
+    if (query && !b.name.toLocaleLowerCase('tr').includes(query)) return false
     return true
   })
 })
@@ -113,7 +122,7 @@ onMounted(loadBusinesses)
           :class="categoryFilter === c.value ? 'border-amber-500 bg-amber-500/10 text-amber-400 font-semibold' : 'border-zinc-800 text-zinc-400 hover:border-zinc-700'"
           @click="categoryFilter = c.value"
         >
-          <AppIcon :name="categoryIconName(c.value === '__other__' ? null : c.value)" class="w-3.5 h-3.5" />
+          <AppIcon :name="c.icon" class="w-3.5 h-3.5" />
           {{ c.label }} · {{ c.count }}
         </button>
       </div>

@@ -26,13 +26,18 @@ async function initMap() {
     styles: DARK_MAP_STYLE,
     disableDefaultUI: true,
     zoomControl: true,
+    clickableIcons: false,
   })
   const infoWindow = new google.maps.InfoWindow()
 
   if (withCoords.value.length === 0) return
 
+  // Frame the saved businesses instead of always opening on the default
+  // city — a discovery anywhere else was otherwise off-screen.
+  const bounds = new google.maps.LatLngBounds()
   for (const b of withCoords.value) {
     const position = { lat: b.lat as number, lng: b.lng as number }
+    bounds.extend(position)
     const marker = new google.maps.Marker({
       position,
       map,
@@ -47,16 +52,44 @@ async function initMap() {
       },
     })
     marker.addListener('click', () => {
-      infoWindow.setContent(`
-        <div style="font-family: 'Inter', sans-serif; max-width: 200px;">
-          <p style="font-weight: 600; margin: 0 0 4px; color: #18181b;">${b.name}</p>
-          <p style="font-size: 12px; color: #71717a; margin: 0 0 8px;">${b.category ?? ''} · ${STATUS_LABELS[b.status]}</p>
-          <a href="/businesses/${b.id}" style="font-size: 13px; color: #d97706; font-weight: 600; cursor: pointer;">Detaya git →</a>
-        </div>
-      `)
+      infoWindow.setContent(infoWindowContent(b))
       infoWindow.open(map, marker)
     })
   }
+
+  if (withCoords.value.length === 1) {
+    map.setCenter(bounds.getCenter())
+    map.setZoom(15)
+  } else {
+    map.fitBounds(bounds, 48)
+  }
+}
+
+// Built with DOM nodes rather than an HTML string: business names come from
+// Google and must never be interpreted as markup.
+function infoWindowContent(b: Business): HTMLElement {
+  const root = document.createElement('div')
+  root.style.cssText = 'font-family: \'Inter\', sans-serif; max-width: 200px;'
+
+  const name = document.createElement('p')
+  name.style.cssText = 'font-weight: 600; margin: 0 0 4px; color: #18181b;'
+  name.textContent = b.name
+
+  const meta = document.createElement('p')
+  meta.style.cssText = 'font-size: 12px; color: #71717a; margin: 0 0 8px;'
+  meta.textContent = `${categoryLabel(b.category)} · ${STATUS_LABELS[b.status]}`
+
+  const link = document.createElement('a')
+  link.href = `/businesses/${b.id}`
+  link.style.cssText = 'font-size: 13px; color: #d97706; font-weight: 600; cursor: pointer;'
+  link.textContent = 'Detaya git →'
+  link.addEventListener('click', (event) => {
+    event.preventDefault()
+    navigateTo(`/businesses/${b.id}`)
+  })
+
+  root.append(name, meta, link)
+  return root
 }
 
 onMounted(async () => {

@@ -56,6 +56,82 @@ const CATEGORY_META: Record<string, { label: string; icon: CategoryIconName }> =
   gym: { label: 'Spor Salonu', icon: 'wrench' },
 }
 
+// Display-only labels for types Google commonly returns as a place's
+// primaryType but which are deliberately NOT offered in the discovery
+// dropdown (sending an unsupported value as includedTypes makes Google reject
+// the whole search). Without these the UI fell back to English, e.g.
+// "Gift Shop" or "Yoga Studio", in an otherwise Turkish interface.
+const DISPLAY_ONLY_META: Record<string, { label: string; icon: CategoryIconName }> = {
+  fast_food_restaurant: { label: 'Fast Food', icon: 'food' },
+  meal_takeaway: { label: 'Paket Servis', icon: 'food' },
+  pizza_restaurant: { label: 'Pizzacı', icon: 'food' },
+  breakfast_restaurant: { label: 'Kahvaltı Salonu', icon: 'food' },
+  dessert_shop: { label: 'Tatlıcı', icon: 'food' },
+  ice_cream_shop: { label: 'Dondurmacı', icon: 'food' },
+  tea_house: { label: 'Çay Evi', icon: 'food' },
+  pub: { label: 'Pub', icon: 'food' },
+
+  guest_house: { label: 'Pansiyon', icon: 'lodging' },
+  hostel: { label: 'Hostel', icon: 'lodging' },
+  lodging: { label: 'Konaklama', icon: 'lodging' },
+
+  event_venue: { label: 'Etkinlik Mekânı', icon: 'venue' },
+  banquet_hall: { label: 'Davet Salonu', icon: 'venue' },
+  art_gallery: { label: 'Sanat Galerisi', icon: 'venue' },
+  museum: { label: 'Müze', icon: 'venue' },
+  monument: { label: 'Anıt', icon: 'venue' },
+  historical_landmark: { label: 'Tarihi Yer', icon: 'venue' },
+  tourist_attraction: { label: 'Turistik Yer', icon: 'venue' },
+
+  store: { label: 'Mağaza', icon: 'shopping' },
+  supermarket: { label: 'Süpermarket', icon: 'shopping' },
+  convenience_store: { label: 'Bakkal', icon: 'shopping' },
+  gift_shop: { label: 'Hediyelik Eşya', icon: 'shopping' },
+  shoe_store: { label: 'Ayakkabı Mağazası', icon: 'shopping' },
+  hardware_store: { label: 'Hırdavat', icon: 'shopping' },
+  cell_phone_store: { label: 'Telefoncu', icon: 'shopping' },
+  auto_parts_store: { label: 'Oto Yedek Parça', icon: 'shopping' },
+  car_rental: { label: 'Araç Kiralama', icon: 'wrench' },
+  sporting_goods_store: { label: 'Spor Malzemeleri', icon: 'shopping' },
+  department_store: { label: 'Büyük Mağaza', icon: 'shopping' },
+
+  general_hospital: { label: 'Hastane', icon: 'health' },
+  health: { label: 'Sağlık', icon: 'health' },
+  medical_clinic: { label: 'Klinik', icon: 'health' },
+  dental_clinic: { label: 'Diş Kliniği', icon: 'health' },
+  medical_lab: { label: 'Tıbbi Laboratuvar', icon: 'health' },
+  physiotherapist: { label: 'Fizyoterapist', icon: 'health' },
+  veterinary_care: { label: 'Veteriner', icon: 'health' },
+
+  educational_institution: { label: 'Eğitim Kurumu', icon: 'briefcase' },
+  academic_department: { label: 'Akademik Birim', icon: 'briefcase' },
+  library: { label: 'Kütüphane', icon: 'briefcase' },
+  garden: { label: 'Bahçe', icon: 'venue' },
+  consultant: { label: 'Danışmanlık', icon: 'briefcase' },
+  accounting: { label: 'Muhasebe', icon: 'briefcase' },
+  courier_service: { label: 'Kargo/Kurye', icon: 'briefcase' },
+
+  transportation_service: { label: 'Ulaşım Hizmeti', icon: 'wrench' },
+  moving_company: { label: 'Nakliyat', icon: 'wrench' },
+  general_contractor: { label: 'Müteahhit', icon: 'wrench' },
+  electrician: { label: 'Elektrikçi', icon: 'wrench' },
+  plumber: { label: 'Tesisatçı', icon: 'wrench' },
+  painter: { label: 'Boyacı', icon: 'wrench' },
+  laundry: { label: 'Çamaşırhane', icon: 'wrench' },
+  car_wash: { label: 'Oto Yıkama', icon: 'wrench' },
+  barber_shop: { label: 'Berber', icon: 'wrench' },
+  nail_salon: { label: 'Manikür Salonu', icon: 'wrench' },
+  spa: { label: 'Spa', icon: 'wrench' },
+  massage: { label: 'Masaj Salonu', icon: 'wrench' },
+  yoga_studio: { label: 'Yoga Stüdyosu', icon: 'wrench' },
+  fitness_center: { label: 'Fitness Merkezi', icon: 'wrench' },
+  sports_club: { label: 'Spor Kulübü', icon: 'wrench' },
+}
+
+function metaFor(category: string): { label: string; icon: CategoryIconName } | undefined {
+  return CATEGORY_META[category] ?? DISPLAY_ONLY_META[category]
+}
+
 // categoryOptionsList() dedupes by label so aliases (e.g. hair_care /
 // hair_salon both meaning "Kuaför") don't produce two identical dropdown
 // entries — only one value per distinct label is kept.
@@ -66,12 +142,12 @@ function humanize(raw: string): string {
 
 export function categoryLabel(category: string | null): string {
   if (!category) return 'Diğer'
-  return CATEGORY_META[category]?.label ?? humanize(category)
+  return metaFor(category)?.label ?? humanize(category)
 }
 
 export function categoryIconName(category: string | null): CategoryIconName {
   if (!category) return 'building'
-  return CATEGORY_META[category]?.icon ?? 'building'
+  return metaFor(category)?.icon ?? 'building'
 }
 
 /** Curated subset of Google Place Types (New) offered in the discovery
