@@ -47,8 +47,10 @@ radius → walk there → arrive prepared*.
 - Built on a 64-unit grid; container corner radius 14 (≈ 22 %).
 - Route stroke 7.5, round caps and joins; target ring 3.25; centre dot 3.75.
 - Optically centred: the glyph's ink box is centred in the container.
-- **Small sizes (< 48 px):** the ring is dropped and the dot grows to 5.5 — the
-  favicon reads as a crisp "L." at 16 px.
+- **One mark at every size.** Route, ring and dot always appear together —
+  favicon, app header and social images alike. Only the 16 px raster favicon
+  is weight-hinted (ring 9 / stroke 4, dot 3.5) so ring and dot stay apart on
+  the pixel grid; the shape does not change.
 
 ### Concepts explored
 

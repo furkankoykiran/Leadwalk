@@ -28,13 +28,15 @@ export const BRAND = {
  * as a walked route that turns one street corner and arrives at a target —
  * the lead inside its search radius, which is exactly what the product finds
  * and walks you to. Optically centred in a rounded-square container.
- * Below 48 px the ring is dropped and the dot grows (`dotSmall`) so the mark
- * stays a crisp "L + dot" at favicon sizes.
+ * The mark is the same at every size: route + ring + dot. Only the 16 px
+ * raster favicon is weight-hinted (`hint16`: heavier ring, slightly smaller
+ * dot) so the ring and dot stay apart on the pixel grid.
  */
 export const MARK = {
   size: 64,
   radius: 14,
   route: 'M15 15.5V36.5a6 6 0 0 0 6 6H26',
   routeWidth: 7.5,
-  target: { cx: 43, cy: 42.5, ring: 8.5, ringWidth: 3.25, dot: 3.75, dotSmall: 5.5 },
+  target: { cx: 43, cy: 42.5, ring: 8.5, ringWidth: 3.25, dot: 3.75 },
+  hint16: { ring: 9, ringWidth: 4, dot: 3.5 },
 } as const

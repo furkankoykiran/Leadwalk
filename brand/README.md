@@ -31,7 +31,8 @@ brand/
 │                               apple-touch-icon, android-chrome 192/512, maskable 512,
 │                               site.webmanifest
 ├── webp/                       Lightweight web versions of the key assets
-├── social/                     og-preview 1200×630 · twitter-header 1500×500 · avatar 400×400
+├── social/                     og-preview 1200×630 · github-social-preview 1280×640 ·
+│                               twitter-header 1500×500 · avatar 400×400
 └── tools/
     ├── build-brand-kit.mjs     The whole pipeline (Node, no system dependencies)
     └── fonts/                  Plus Jakarta Sans WOFF subsets + OFL licence
@@ -62,6 +63,11 @@ Edit `shared/brand.ts` (name, taglines, colours, mark geometry), run the
 build, and update `BRAND.md` if the rules changed. The in-app logo
 (`app/components/BrandMark.vue`) reads the same geometry, so it updates with
 no extra step.
+
+## GitHub social preview
+
+Upload `social/github-social-preview-1280x640.png` in the repository's
+**Settings → Social preview** (GitHub recommends 1280×640, under 1 MB).
 
 ## Viewing the asset page
 

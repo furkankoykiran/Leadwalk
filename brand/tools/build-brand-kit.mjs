@@ -79,24 +79,24 @@ function textOutline(text, weight, size, tracking = 0) {
 let idCounter = 0
 const uid = prefix => `${prefix}${++idCounter}`
 
-/** The glyph (route + target) in one colour. `full` = with the target ring;
- * small sizes drop it and enlarge the dot instead. */
-function glyph(color, full = true) {
-  const t = MARK.target
+/** The glyph (route + target) in one colour. Always the full mark; `hinted`
+ * only re-weights the ring and dot for the 16 px raster. */
+function glyph(color, hinted = false) {
+  const t = { ...MARK.target, ...(hinted ? MARK.hint16 : {}) }
   return `<path d="${MARK.route}" stroke="${color}" stroke-width="${MARK.routeWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
-    + (full ? `<circle cx="${t.cx}" cy="${t.cy}" r="${t.ring}" stroke="${color}" stroke-width="${t.ringWidth}" fill="none"/>` : '')
-    + `<circle cx="${t.cx}" cy="${t.cy}" r="${full ? t.dot : t.dotSmall}" fill="${color}"/>`
+    + `<circle cx="${t.cx}" cy="${t.cy}" r="${t.ring}" stroke="${color}" stroke-width="${t.ringWidth}" fill="none"/>`
+    + `<circle cx="${t.cx}" cy="${t.cy}" r="${t.dot}" fill="${color}"/>`
 }
 
-function symbolInner({ container, glyph: glyphColor, knockout = false, signal = true }) {
+function symbolInner({ container, glyph: glyphColor, knockout = false, hinted = false }) {
   if (!knockout) {
-    return `<rect width="${MARK.size}" height="${MARK.size}" rx="${MARK.radius}" fill="${container}"/>${glyph(glyphColor, signal)}`
+    return `<rect width="${MARK.size}" height="${MARK.size}" rx="${MARK.radius}" fill="${container}"/>${glyph(glyphColor, hinted)}`
   }
   const id = uid('k')
-  return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${MARK.size}" height="${MARK.size}"><rect width="${MARK.size}" height="${MARK.size}" fill="#fff"/>${glyph('#000', signal)}</mask><rect width="${MARK.size}" height="${MARK.size}" rx="${MARK.radius}" fill="${container}" mask="url(#${id})"/>`
+  return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${MARK.size}" height="${MARK.size}"><rect width="${MARK.size}" height="${MARK.size}" fill="#fff"/>${glyph('#000', hinted)}</mask><rect width="${MARK.size}" height="${MARK.size}" rx="${MARK.radius}" fill="${container}" mask="url(#${id})"/>`
 }
 
-function symbol(variant, signal = true) {
+function symbol(variant, hinted = false) {
   const v = {
     color: { container: C.accent, glyph: '#FFFFFF' },
     dark: { container: C.accentDark, glyph: C.night },
@@ -104,7 +104,7 @@ function symbol(variant, signal = true) {
     'mono-white': { container: '#FFFFFF', knockout: true },
     currentcolor: { container: 'currentColor', knockout: true },
   }[variant]
-  return { w: MARK.size, h: MARK.size, inner: symbolInner({ ...v, signal }) }
+  return { w: MARK.size, h: MARK.size, inner: symbolInner({ ...v, hinted }) }
 }
 
 const WORDMARK = textOutline(BRAND.name, 700, 100, -0.015)
@@ -193,7 +193,7 @@ const THEMES = {
 
 /** A canvas with the stacked (portrait/square) or horizontal (landscape)
  * logo centred, plus the tagline when there is room. */
-function canvas(w, h, themeName, { safeLeft = 0, tagline = true } = {}) {
+function canvas(w, h, themeName, { safeLeft = 0, tagline = true, liftY = 0 } = {}) {
   const theme = THEMES[themeName]
   const landscape = w / h >= 1.6
   const logo = landscape ? logoHorizontal(theme.variant) : logoStacked(theme.variant)
@@ -207,7 +207,7 @@ function canvas(w, h, themeName, { safeLeft = 0, tagline = true } = {}) {
   const tagH = tag ? tag.h * tagScale : 0
   const gap = tag ? lh * (landscape ? 0.42 : 0.14) : 0
   const blockH = lh + gap + tagH
-  const top = (h - blockH) / 2
+  const top = (h - blockH) / 2 - liftY
   content += nest(logo, safeLeft + (usableW - lw) / 2, top, scale)
   if (tag) content += nest(tag, safeLeft + (usableW - tag.w * tagScale) / 2, top + lh + gap, tagScale)
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="${theme.bg}"/>${content}</svg>`
@@ -229,10 +229,10 @@ function ogCard(w, h) {
 
 /** Square app/avatar tile: full-bleed accent with the glyph scaled into the
  * centre `safe` fraction (0.8 for Android maskable icons). */
-function appTile(size, safe = 0.62, signal = true) {
+function appTile(size, safe = 0.62) {
   const glyphScale = (size * safe) / 41 // the glyph's ink spans ~41 grid units
   const offset = size / 2 - 32 * glyphScale
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${C.accent}"/><g transform="translate(${round(offset)} ${round(offset)}) scale(${round(glyphScale)})">${glyph('#FFFFFF', signal)}</g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="${C.accent}"/><g transform="translate(${round(offset)} ${round(offset)}) scale(${round(glyphScale)})">${glyph('#FFFFFF')}</g></svg>`
 }
 
 async function png(svg, file, width, height) {
@@ -394,11 +394,13 @@ await png(horizontal, 'png/logo-horizontal-transparent.png', hSize.width, hSize.
 await png(stacked, 'png/logo-stacked-transparent.png', sSize.width, sSize.height)
 
 // 4. Favicon + PWA kit
-const smallSymbol = svgDocument(symbol('color', false))
-await write('favicon/favicon.svg', smallSymbol)
+// One mark at every size: the SVG favicon is the full symbol; only the 16 px
+// raster gets the weight-hinted ring.
+const hintedSymbol = svgDocument(symbol('color', true))
+await write('favicon/favicon.svg', symbolDoc)
 const icoLayers = []
 for (const size of [16, 32, 48, 64, 128, 256]) {
-  const src = size >= 64 ? symbolDoc : smallSymbol
+  const src = size <= 16 ? hintedSymbol : symbolDoc
   const data = await sharp(Buffer.from(src), { density: 384 }).resize(size, size).png().toBuffer()
   icoLayers.push({ size, data })
   if (size === 16 || size === 32) await write(`favicon/favicon-${size}x${size}.png`, data)
@@ -427,8 +429,11 @@ await write('favicon/site.webmanifest', `${JSON.stringify(manifest, null, 2)}\n`
 // 5. Social
 const og = ogCard(1200, 630)
 await png(og, 'social/og-preview-1200x630.png', 1200, 630)
-// X/Twitter header: keep the lower-left avatar area clear.
-await png(canvas(1500, 500, 'light', { safeLeft: 260 }), 'social/twitter-header-1500x500.png', 1500, 500)
+// GitHub's repository social preview recommends exactly 2:1, 1280×640.
+await png(ogCard(1280, 640), 'social/github-social-preview-1280x640.png', 1280, 640)
+// X/Twitter header: centred, lifted slightly so the profile photo (which
+// overlaps the lower-left corner) and X's top/bottom crop never touch it.
+await png(canvas(1500, 500, 'light', { liftY: 30 }), 'social/twitter-header-1500x500.png', 1500, 500)
 await png(appTile(400, 0.6), 'social/social-avatar-400x400.png', 400, 400)
 
 // 6. WebP
@@ -436,7 +441,7 @@ await webp(symbolDoc, 'webp/symbol.webp', 512, 512)
 await webp(horizontal, 'webp/logo-horizontal.webp', hSize.width, hSize.height)
 await webp(stacked, 'webp/logo-stacked.webp', sSize.width, sSize.height)
 await webp(og, 'webp/og-card-1200x630.webp', 1200, 630)
-await webp(canvas(1500, 500, 'light', { safeLeft: 260 }), 'webp/x-header-1500x500.webp', 1500, 500)
+await webp(canvas(1500, 500, 'light', { liftY: 30 }), 'webp/x-header-1500x500.webp', 1500, 500)
 
 // 7. Design tokens (W3C Design Tokens Community Group format)
 const color = (value, description) => ({ $type: 'color', $value: value, ...(description ? { $description: description } : {}) })
