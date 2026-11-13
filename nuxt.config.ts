@@ -1,9 +1,16 @@
 import tailwindcss from '@tailwindcss/vite'
+import { BRAND } from './shared/brand'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  // NUXT_DEVTOOLS=false hides the DevTools badge (E2E runs, README screenshots).
+  devtools: { enabled: process.env.NUXT_DEVTOOLS !== 'false' },
+
+  // A local, single-user tool: rendering in the browser means the UI
+  // language and every date follow the *browser* (navigator.languages and
+  // its time zone) with no server/client mismatch. SSR would add nothing here.
+  ssr: false,
 
   modules: [
     '@nuxt/image',
@@ -14,22 +21,22 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'ProspectForge',
-      // Pages that set their own title render as "<page> · ProspectForge";
-      // pages that don't fall back to the bare product name above.
-      titleTemplate: title => (title ? `${title} · ProspectForge` : 'ProspectForge'),
-      htmlAttrs: { lang: 'tr' },
+      title: BRAND.name,
+      // Pages that set their own title render as "<page> · Brand".
+      titleTemplate: title => (title ? `${title} · ${BRAND.name}` : BRAND.name),
       meta: [
-        { name: 'theme-color', content: '#09090b' },
-        {
-          name: 'description',
-          content: 'AI-assisted local business prospecting and sales-preparation toolkit.',
-        },
+        { name: 'theme-color', content: '#fbf8f4', media: '(prefers-color-scheme: light)' },
+        { name: 'theme-color', content: '#141210', media: '(prefers-color-scheme: dark)' },
+        { name: 'description', content: BRAND.description },
+        { property: 'og:title', content: `${BRAND.name} — ${BRAND.tagline.en}` },
+        { property: 'og:description', content: BRAND.description },
+        { property: 'og:image', content: '/og-image.png' },
       ],
       link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
       ],
     },
   },

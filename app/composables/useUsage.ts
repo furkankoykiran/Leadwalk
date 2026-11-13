@@ -1,17 +1,15 @@
-import type { DailyUsage } from '#shared/types/usage'
+import type { UsageSummary } from '#shared/types/usage'
 
-// Shared so that any page can refresh the sidebar counter right after a
-// billable action. Previously the layout only reloaded it on route changes,
-// so a generation on the detail page (which never navigates) left the
-// "üretim" count stale until the user clicked somewhere else.
+// Shared so that any page can refresh the sidebar meter right after a
+// billable action (discovery, generation) without navigating.
 export function useUsage() {
-  const usage = useState<DailyUsage | null>('daily-usage', () => null)
+  const usage = useState<UsageSummary | null>('usage-summary', () => null)
 
   async function refreshUsage() {
     try {
-      usage.value = await $fetch<DailyUsage>('/api/usage')
+      usage.value = await $fetch<UsageSummary>('/api/usage')
     } catch {
-      // The counter is informational; a failed refresh must not break the page.
+      // The meter is informational; a failed refresh must not break the page.
     }
   }
 

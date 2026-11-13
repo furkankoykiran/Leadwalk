@@ -1,13 +1,18 @@
 <script setup lang="ts">
+import type { DiscoverResponse } from '#shared/types/business'
+
+const { t, locale } = useI18n()
+const { refreshUsage } = useUsage()
+useHead({ title: () => t('nav.discover') })
+
 const pinnedCoords = ref<{ lat: number; lng: number } | null>(null)
 const address = ref('')
-const radiusMeters = ref(3000)
+const radiusMeters = ref(1000)
 const category = ref('')
 const discovering = ref(false)
-const discoverMessage = ref<string | null>(null)
+const message = ref<string | null>(null)
 
-const categoryOptions = categoryOptionsList()
-const { refreshUsage } = useUsage()
+const categoryOptions = computed(() => categoryOptionsList(locale.value))
 
 // A typed address wins over the pin: typing is a deliberate action, and the
 // server geocodes it. Either one is enough to search.
@@ -17,26 +22,22 @@ const canDiscover = computed(() => !discovering.value && (!!trimmedAddress.value
 async function discover() {
   if (!canDiscover.value) return
   discovering.value = true
-  discoverMessage.value = null
+  message.value = null
+  const shared = { radiusMeters: radiusMeters.value, category: category.value || undefined }
   try {
-    const result = await $fetch<{ count: number; message?: string }>('/api/discover', {
+    const result = await $fetch<DiscoverResponse>('/api/discover', {
       method: 'POST',
       body: trimmedAddress.value
-        ? { location: trimmedAddress.value, radiusMeters: radiusMeters.value, category: category.value || undefined }
-        : {
-            lat: pinnedCoords.value?.lat,
-            lng: pinnedCoords.value?.lng,
-            radiusMeters: radiusMeters.value,
-            category: category.value || undefined,
-          },
+        ? { location: trimmedAddress.value, ...shared }
+        : { lat: pinnedCoords.value?.lat, lng: pinnedCoords.value?.lng, ...shared },
     })
     if (result.count > 0) {
-      await navigateTo('/businesses')
+      await navigateTo({ path: '/businesses', query: { found: result.count, new: result.new_count } })
     } else {
-      discoverMessage.value = result.message ?? null
+      message.value = result.message ?? null
     }
   } catch (error) {
-    discoverMessage.value = errorMessage(error, 'Keşif başarısız oldu, tekrar dene.')
+    message.value = errorMessage(error, t('discover.failed'))
   } finally {
     discovering.value = false
     refreshUsage()
@@ -47,57 +48,45 @@ async function discover() {
 <template>
   <div class="h-full flex flex-col gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">Yeni Keşif</h1>
-      <p class="text-zinc-500 text-sm mt-0.5">Haritadan bir nokta seç ya da adres yaz, çevredeki işletmeleri bul.</p>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{{ t('discover.title') }}</h1>
+      <p class="text-muted text-sm mt-1">{{ t('discover.subtitle') }}</p>
     </div>
 
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col flex-1 min-h-0 gap-4">
-      <LocationPicker v-model:coords="pinnedCoords" :radius-meters="radiusMeters" class="flex-1 min-h-0 flex flex-col" />
+    <div class="bg-surface border border-line rounded-3xl p-4 sm:p-5 flex flex-col flex-1 min-h-0 gap-4">
+      <LocationPicker v-model:coords="pinnedCoords" :radius-meters="radiusMeters" class="flex-1 min-h-0" />
 
-      <form class="flex items-center gap-3 flex-wrap" @submit.prevent="discover">
-        <input
-          v-model="address"
-          type="text"
-          placeholder="…veya adres yaz (örn. Kızılay, Ankara)"
-          aria-label="Adres"
-          class="w-72 bg-zinc-800/50 border border-zinc-700 rounded-xl px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50"
-        >
-
-        <div class="relative">
-          <select
-            v-model.number="radiusMeters"
-            aria-label="Yarıçap"
-            class="appearance-none bg-zinc-800/50 border border-zinc-700 rounded-xl pl-3 pr-9 py-2.5 text-sm text-zinc-100 cursor-pointer"
-          >
+      <form class="flex flex-wrap items-end gap-3" @submit.prevent="discover">
+        <label class="flex-1 min-w-[220px] flex flex-col gap-1 text-xs font-semibold text-muted">
+          {{ t('discover.addressLabel') }}
+          <input v-model="address" type="text" :placeholder="t('discover.addressPlaceholder')" class="px-3.5 py-2.5 rounded-xl border border-line-strong bg-surface text-sm text-ink placeholder:text-muted" data-testid="discover-address">
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold text-muted">
+          {{ t('discover.radius') }}
+          <select v-model.number="radiusMeters" class="px-3 py-2.5 rounded-xl border border-line-strong bg-surface text-sm text-ink cursor-pointer" data-testid="discover-radius">
+            <option :value="500">500 m</option>
             <option :value="1000">1 km</option>
             <option :value="3000">3 km</option>
             <option :value="5000">5 km</option>
           </select>
-          <AppIcon name="chevron-down" class="w-4 h-4 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-        </div>
-
-        <div class="relative w-64">
-          <select
-            v-model="category"
-            aria-label="Kategori"
-            class="w-full appearance-none bg-zinc-800/50 border border-zinc-700 rounded-xl pl-3 pr-9 py-2.5 text-sm text-zinc-100 cursor-pointer"
-          >
-            <option value="">Tüm kategoriler</option>
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold text-muted">
+          {{ t('discover.category') }}
+          <select v-model="category" class="w-56 px-3 py-2.5 rounded-xl border border-line-strong bg-surface text-sm text-ink cursor-pointer" data-testid="discover-category">
+            <option value="">{{ t('discover.allCategories') }}</option>
             <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
-          <AppIcon name="chevron-down" class="w-4 h-4 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-        </div>
-
+        </label>
         <button
           type="submit"
-          class="px-8 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold disabled:opacity-50 transition cursor-pointer disabled:cursor-not-allowed"
+          class="px-7 py-2.5 rounded-xl bg-accent text-on-accent font-bold hover:bg-accent-hover disabled:opacity-50 transition cursor-pointer disabled:cursor-not-allowed"
           :disabled="!canDiscover"
+          data-testid="discover-submit"
         >
-          {{ discovering ? 'Aranıyor…' : 'Keşfet' }}
+          {{ discovering ? t('discover.searching') : t('discover.submit') }}
         </button>
-
-        <p v-if="discoverMessage" class="text-sm text-zinc-400">{{ discoverMessage }}</p>
       </form>
+      <p v-if="message" class="text-sm font-semibold text-ink-2" role="status" data-testid="discover-message">{{ message }}</p>
+      <p class="text-xs text-muted">{{ t('discover.costHint') }}</p>
     </div>
   </div>
 </template>

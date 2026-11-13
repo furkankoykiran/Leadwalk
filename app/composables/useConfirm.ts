@@ -5,12 +5,13 @@ interface ConfirmOptions {
   danger?: boolean
 }
 
+// Empty strings fall back to the localised defaults in ConfirmDialog.vue.
 const state = reactive({
   visible: false,
   message: '',
-  title: 'Emin misin?',
-  confirmText: 'Onayla',
-  cancelText: 'Vazgeç',
+  title: '',
+  confirmText: '',
+  cancelText: '',
   danger: false,
 })
 
@@ -20,10 +21,11 @@ let resolver: ((value: boolean) => void) | null = null
 // mounted once in app.vue, instead of native window.confirm().
 export function useConfirm() {
   function confirmDialog(message: string, options: ConfirmOptions = {}): Promise<boolean> {
+    resolver?.(false)
     state.message = message
-    state.title = options.title ?? 'Emin misin?'
-    state.confirmText = options.confirmText ?? 'Onayla'
-    state.cancelText = options.cancelText ?? 'Vazgeç'
+    state.title = options.title ?? ''
+    state.confirmText = options.confirmText ?? ''
+    state.cancelText = options.cancelText ?? ''
     state.danger = options.danger ?? false
     state.visible = true
     return new Promise((resolve) => {
